@@ -1,6 +1,31 @@
 // src/components/SensorData.js
 import { useEffect, useState, useRef } from "react";
 import { io as Client } from "socket.io-client";
+import { Line, Scatter } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+} from "chart.js";
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+);
+
 import * as d3 from "d3";
 
 const socket = Client("http://localhost:3000");
@@ -10,6 +35,8 @@ const SensorData = () => {
   const [ultraData, setUltraData] = useState([]);
   const [tevData, setTevData] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [timestampsUD, setTimestampsUD] = useState([]);
+  const [timestampsTEV, setTimestampsTEV] = useState([]);
   const [error, setError] = useState(null);
   const svgRef = useRef(null);
 
@@ -31,9 +58,11 @@ const SensorData = () => {
     });
 
     socket.on("sensor-data", (data) => {
-      console.log("Received data: ", data);
+      const currentTime = new Date().toLocaleTimeString();
+
+      // console.log("Received data: ", data);
       setData((prevData) => {
-        if (prevData.length >= 30) {
+        if (prevData.length >= 50) {
           prevData.shift(); // Keep the buffer at 30 entries
         }
         return [...prevData, data];
@@ -42,20 +71,29 @@ const SensorData = () => {
       if (data.includes("Ultra=")) {
         data = data.split("=")[1];
         setUltraData((prevData) => {
-          if (prevData.length >= 30) {
-            prevData.shift(); // Keep the buffer at 30 entries
+          if (prevData.length >= 50) {
+            prevData.shift(); // Keep the buffer at 50 entries
           }
           return [...prevData, data];
         });
+        setTimestampsUD((prev) =>
+          prev.length >= 50 ? [...prev.slice(1), currentTime] : [...prev, currentTime]
+        );
       }
       if (data.includes("TEV=")) {
         data = data.split("=")[1];
+        data = data.split("/")[1];
+        console.log(data);
+        let ppc = data / 30;
         setTevData((prevData) => {
-          if (prevData.length >= 30) {
-            prevData.shift(); // Keep the buffer at 30 entries
+          if (prevData.length >= 10) {
+            prevData.shift(); // Keep the buffer at 10 entries
           }
-          return [...prevData, data];
+          return [...prevData, ppc];
         });
+        setTimestampsTEV((prev) =>
+          prev.length >= 10 ? [...prev.slice(1), currentTime] : [...prev, currentTime]
+        );
       }
     });
 
@@ -70,123 +108,82 @@ const SensorData = () => {
     };
   }, []);
 
-  // Set up the D3 chart after data is updated
-  useEffect(() => {
-    // Define SVG dimensions
-    const width = 800;
-    const height = 400;
+  // Chart.js data
+  const lineDataUltra = {
+    labels: timestampsUD,
+    datasets: [
+      {
+        label: "Ultrasound Sensor (Line)",
+        data: ultraData,
+        borderColor: "blue",
+        backgroundColor: "rgba(0, 0, 255, 0.2)",
+        tension: 0.4,
+      },
+    ],
+  };
 
-    // Set up SVG
-    const svg = d3.select(svgRef.current).attr("width", width).attr("height", height);
+  const lineDataTEV = {
+    labels: timestampsTEV,
+    datasets: [
+      {
+        label: "TEV Sensor (Line)",
+        data: tevData,
+        borderColor: "red",
+        backgroundColor: "rgba(255, 0, 0, 0.2)",
+        tension: 0.4,
+      },
+    ],
+  };
 
-    // Define the scales
-    const xScale = d3
-      .scaleLinear()
-      .domain([0, ultraData.length - 1])
-      .range([50, width - 50]);
+  // Chart.js options
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: {
+      duration: 0, // Disable animation
+    },
+    scales: {
+      x: {
+        title: { display: true, text: "Time" },
+      },
+      y: {
+        title: { display: true, text: "dB" },
+        beginAtZero: true,
+        min: 0,
+        max: 100,
+      },
+    },
+    plugins: {
+      legend: { position: "top" },
+      tooltip: { mode: "index", intersect: false },
+    },
+  };
 
-    const yScale = d3
-      .scaleLinear()
-      .domain([0, 100]) // Adjust based on your sensor value range
-      .range([height - 50, 50]);
-
-    // Clear old points
-    svg.selectAll("*").remove();
-
-    // Add points
-    svg
-      .selectAll(".dot")
-      .data(ultraData)
-      .enter()
-      .append("circle")
-      .attr("cx", (_, i) => xScale(i))
-      .attr("cy", (d) => yScale(d))
-      .attr("r", 5)
-      .attr("fill", "steelblue");
-
-    // Add axes
-    const xAxis = d3.axisBottom(xScale).ticks(ultraData.length);
-    const yAxis = d3.axisLeft(yScale).ticks(10);
-
-    svg
-      .append("g")
-      .attr("transform", `translate(0,${height - 50})`)
-      .call(xAxis);
-
-    svg.append("g").attr("transform", `translate(50,0)`).call(yAxis);
-  }, [ultraData]);
-
-  //   useEffect(() => {
-  //     const svg = d3.select(svgRef.current).attr("width", 500).attr("height", 300);
-
-  //     const margin = { top: 20, right: 30, bottom: 40, left: 40 };
-  //     const width = +svg.attr("width") - margin.left - margin.right;
-  //     const height = +svg.attr("height") - margin.top - margin.bottom;
-
-  //     const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-
-  //     const x = d3
-  //       .scaleTime()
-  //       .domain(d3.extent(data, (d) => new Date(d.timestamp))) // Use the timestamp for the X-axis
-  //       .range([0, width]);
-
-  //     const y = d3
-  //       .scaleLinear()
-  //       .domain([0, d3.max(data, (d) => d.voltage)]) // Use the value for the Y-axis
-  //       .range([height, 0]);
-
-  //     // Draw the axes once, if they don't exist yet
-  //     if (!svg.select(".x-axis").node()) {
-  //       g.append("g")
-  //         .attr("class", "x-axis")
-  //         .attr("transform", `translate(0,${height})`)
-  //         .call(d3.axisBottom(x));
-  //     }
-
-  //     if (!svg.select(".y-axis").node()) {
-  //       g.append("g").attr("class", "y-axis").call(d3.axisLeft(y));
-  //     }
-
-  //     // Update the scales based on the new data
-  //     g.select(".x-axis").transition().duration(500).call(d3.axisBottom(x));
-
-  //     g.select(".y-axis").transition().duration(500).call(d3.axisLeft(y));
-
-  //     // Create circles for each data point
-  //     // const dots = g.selectAll(".dot").data(data);
-  //     svg.selectAll(".dot").remove();
-
-  //     const dots = g.selectAll(".dot").data(data, (d) => d.timestamp); // Use timestamp as a key for proper data binding
-
-  //     // Remove any old dots
-  //     // dots.exit().remove();
-
-  //     // Update existing dots
-  //     dots
-  //       .attr("cx", (d) => x(new Date(d.timestamp))) // Map timestamp to X-axis
-  //       .attr("cy", (d) => y(d.voltage)) // Map value to Y-axis
-  //       .attr("r", 5) // Set the radius of the circle
-  //       .attr("fill", "steelblue"); // Set the color of the circle
-
-  //     // Add new dots
-  //     dots
-  //       .enter()
-  //       .append("circle")
-  //       .attr("class", "dot")
-  //       .attr("cx", (d) => x(new Date(d.timestamp))) // Map timestamp to X-axis
-  //       .attr("cy", (d) => y(d.voltage)) // Map value to Y-axis
-  //       .attr("r", 5) // Set the radius of the circle
-  //       .attr("fill", "steelblue")
-  //       .on("mouseover", (event, d) => {
-  //         d3.select(event.currentTarget).attr("fill", "orange"); // Change color on hover
-  //       })
-  //       .on("mouseout", (event, d) => {
-  //         d3.select(event.currentTarget).attr("fill", "steelblue"); // Reset color on mouse out
-  //       });
-  //   }, [data]);
+  const optionsTEV = {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: {
+      duration: 0, // Disable animation
+    },
+    scales: {
+      x: {
+        title: { display: true, text: "Time" },
+      },
+      y: {
+        title: { display: true, text: "Pulses per Cycle" },
+        beginAtZero: true,
+        min: 0,
+        max: 50,
+      },
+    },
+    plugins: {
+      legend: { position: "top" },
+      tooltip: { mode: "index", intersect: false },
+    },
+  };
 
   return (
-    <div>
+    <div style={{ width: "80%", margin: "auto", textAlign: "center" }}>
       <h1>Sensor Data</h1>
       <button onClick={startReading} disabled={isConnected} className="btn">
         Start Reading
@@ -201,7 +198,7 @@ const SensorData = () => {
       <div>
         {error && <p style={{ color: "red" }}>{error}</p>}
         <h2>Latest Ultra Sound Sensor Data:</h2>
-        <ul>
+        {/* <ul>
           {ultraData.map((data, index) => (
             <li key={index}>{JSON.stringify(data)}</li>
           ))}
@@ -211,7 +208,13 @@ const SensorData = () => {
           {tevData.map((data, index) => (
             <li key={index}>{JSON.stringify(data)}</li>
           ))}
-        </ul>
+        </ul> */}
+        <div style={{ height: "400px", marginTop: "20px" }}>
+          <Line data={lineDataUltra} options={options} />
+        </div>
+        <div style={{ height: "400px", marginTop: "20px" }}>
+          <Line data={lineDataTEV} options={optionsTEV} />
+        </div>
       </div>
     </div>
   );

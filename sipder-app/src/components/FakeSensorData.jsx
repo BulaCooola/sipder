@@ -10,11 +10,20 @@ import {
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
 } from "chart.js";
 
 // Register Chart.js components
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+);
 
 const socket = Client("http://localhost:3000");
 
@@ -55,9 +64,8 @@ const SensorData = () => {
         );
       }
 
-
       if (data.includes("TEV=")) {
-        console.log(currentTime)
+        console.log(currentTime);
         const value = parseFloat(data.split("=")[1]);
         setTevData((prev) => (prev.length >= 10 ? [...prev.slice(1), value] : [...prev, value]));
         setTimestampsTEV((prev) =>
@@ -100,7 +108,7 @@ const SensorData = () => {
         borderColor: "red",
         backgroundColor: "rgba(255, 0, 0, 0.2)",
         tension: 0.4,
-      }
+      },
     ],
   };
 
@@ -115,8 +123,8 @@ const SensorData = () => {
         })),
         borderColor: "blue",
         backgroundColor: "rgba(0, 0, 255, 0.2)",
-        showLine: false,  // Disable line to make it a scatter plot
-        pointRadius: 5,   // Adjust point size
+        showLine: false, // Disable line to make it a scatter plot
+        pointRadius: 5, // Adjust point size
       },
       {
         label: "TEV Sensor (Scatter)",
@@ -126,18 +134,18 @@ const SensorData = () => {
         })),
         borderColor: "red",
         backgroundColor: "rgba(255, 0, 0, 0.2)",
-        showLine: false,  // Disable line to make it a scatter plot
-        pointRadius: 5,   // Adjust point size
+        showLine: false, // Disable line to make it a scatter plot
+        pointRadius: 5, // Adjust point size
       },
     ],
-  }
+  };
 
   // Chart.js options
   const options = {
     responsive: true,
     maintainAspectRatio: false,
     animation: {
-      duration: 0,  // Disable animation
+      duration: 0, // Disable animation
     },
     scales: {
       x: {
@@ -158,11 +166,11 @@ const SensorData = () => {
     responsive: true,
     maintainAspectRatio: false,
     animation: {
-      duration: 0,  // Disable animation
+      duration: 0, // Disable animation
     },
     scales: {
       x: {
-        title: { display: true, text: "Time",  },
+        title: { display: true, text: "Time" },
       },
       y: {
         title: { display: true, text: "Sensor Value" },
@@ -179,39 +187,39 @@ const SensorData = () => {
     responsive: true,
     maintainAspectRatio: false,
     animation: {
-      duration: 0,  // Disable animation
+      duration: 0, // Disable animation
     },
     scales: {
       x: {
-        title: { 
-          display: true, 
-          text: "Time", 
+        title: {
+          display: true,
+          text: "Time",
         },
-        type: "category",  // Makes x-axis a category for time (or a set of labels)
+        type: "category", // Makes x-axis a category for time (or a set of labels)
         ticks: {
-          autoSkip: true,    // Skip ticks for readability if too many
-          maxRotation: 45,   // Rotates labels to avoid overlap
+          autoSkip: true, // Skip ticks for readability if too many
+          maxRotation: 45, // Rotates labels to avoid overlap
           minRotation: 0,
         },
         grid: {
-          display: true,     // Show grid lines
+          display: true, // Show grid lines
           color: "rgba(0, 0, 0, 0.1)", // Color for the grid lines
-          lineWidth: 1,      // Grid line width
+          lineWidth: 1, // Grid line width
         },
       },
       y: {
-        title: { 
-          display: true, 
-          text: "Sensor Value" 
+        title: {
+          display: true,
+          text: "Sensor Value",
         },
         ticks: {
-          beginAtZero: true,  // Start from zero on Y-axis
-          stepSize: 5,        // Adjust the interval of ticks
+          beginAtZero: true, // Start from zero on Y-axis
+          stepSize: 5, // Adjust the interval of ticks
         },
         grid: {
-          display: true,      // Show grid lines
+          display: true, // Show grid lines
           color: "rgba(0, 0, 0, 0.1)", // Color for the grid lines
-          lineWidth: 1,       // Grid line width
+          lineWidth: 1, // Grid line width
         },
       },
     },
@@ -220,13 +228,17 @@ const SensorData = () => {
       tooltip: { mode: "index", intersect: false },
     },
   };
-  
+
   //! ADJUST TEV READING SUCH THAT IT GRAPHS EVERY 5 TICKS
 
   return (
     <div style={{ width: "80%", margin: "auto", textAlign: "center" }}>
       <h1 className="text-2xl font-bold py-4 px-2">Fake Sensor Data Visualization</h1>
-      <button onClick={startReading} disabled={isConnected} className="mx-4 px-6 py-3 mb-6 text-lg font-semibold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 transition">
+      <button
+        onClick={startReading}
+        disabled={isConnected}
+        className="mx-4 px-6 py-3 mb-6 text-lg font-semibold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 transition"
+      >
         Start Reading
       </button>
       <button onClick={stopReading} disabled={!isConnected} className="btn btn-success">
@@ -241,10 +253,10 @@ const SensorData = () => {
       <div style={{ height: "400px", marginTop: "20px" }}>
         <Line data={lineDataTEV} options={optionsTEV} />
       </div>
-      
+
       <div style={{ height: "400px", marginTop: "20px" }}>
         {console.log(scatterData)}
-          <Scatter data={scatterData} options={optionsScatter } />
+        <Scatter data={scatterData} options={optionsScatter} />
       </div>
     </div>
   );
