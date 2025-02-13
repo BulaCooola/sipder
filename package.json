@@ -1,0 +1,24 @@
+{
+  "name": "sipder",
+  "version": "1.0.0",
+  "description": "Repository that provides an API to the SIPDER system",
+  "homepage": "https://github.com/BulaCooola/sipder#readme",
+  "bugs": {
+    "url": "https://github.com/BulaCooola/sipder/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BulaCooola/sipder.git"
+  },
+  "license": "ISC",
+  "author": "Branden Bulatao",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"cd node-api && npm run start\" \"cd sipder-app && npm run dev\" \"cd SIPDER-app && npm run electron\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
