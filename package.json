@@ -15,8 +15,9 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"cd node-api && npm run start\" \"cd sipder-app && npm run dev\" \"cd SIPDER-app && npm run electron\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "concurrently \"cd node-api && npm run start\" \"cd sipder-app && npm run dev\" \"cd sipder-app && npm run electron\"",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install-all": "concurrently \"cd node-api && npm i\" \"cd sipder-app && npm i\""
   },
   "dependencies": {
     "concurrently": "^9.1.2"
