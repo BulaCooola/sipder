@@ -90,31 +90,44 @@ io.on("connection", (socket) => {
     socket.join("real-data");
     console.log("Read command received");
 
-    port = new SerialPort({ path: "COM5", baudRate: 115200 }, (err) => {
+    port = new SerialPort({ path: "COM6", baudRate: 115200 }, (err) => {
       if (err) {
         console.error("Error opening port:", err.message);
         socket.emit("sensor-error", err);
       } else {
         console.log("Port opened successfully!");
-        isPort = true;
+        isPort = true;  
+        parser = port.pipe(new ReadlineParser({ delimiter: "\n" }));
+
+        parser.on("data", (data) => {
+          if (isFirstLine) {
+            console.log(`Ignoring first line: ${data}`);
+            isFirstLine = false; // Skip the first line
+            return;
+          }
+          console.log(data.toString().trim());
+  
+          io.to("real-data").emit("sensor-data", data.toString().trim());
+        });
+
       }
     });
 
-    parser = port.pipe(new ReadlineParser({ delimiter: "\n" }));
+    // parser = port.pipe(new ReadlineParser({ delimiter: "\n" }));
+    // // Real data
+    // if (isPort) {
+    //   parser.on("data", (data) => {
+    //     console.log(data)
+    //     if (isFirstLine) {
+    //       console.log(`Ignoring first line: ${data}`);
+    //       isFirstLine = false; // Skip the first line
+    //       return;
+    //     }
+    //     console.log(data.toString().trim());
 
-    // Real data
-    if (isPort) {
-      parser.on("data", (data) => {
-        if (isFirstLine) {
-          console.log(`Ignoring first line: ${data}`);
-          isFirstLine = false; // Skip the first line
-          return;
-        }
-        print(data)
-        console.log(data.toString().trim());
-        socket.emit("sensor-data", data.toString().trim());
-      });
-    }
+    //     io.to("real-data").emit("sensor-data", data.toString().trim());
+    //   });
+    // }
   });
 
   // Listener to stop data streaming
@@ -146,14 +159,14 @@ io.on("connection", (socket) => {
   });
 });
 
-// Handle socket connections
-io.on("connection", (socket) => {
-  console.log("Front End Client connected:", socket.id);
+// // Handle socket connections
+// io.on("connection", (socket) => {
+//   console.log("Front End Client connected:", socket.id);
 
-  socket.on("disconnect", () => {
-    console.log("Front End Client disconnected:", socket.id);
-  });
-});
+//   socket.on("disconnect", () => {
+//     console.log("Front End Client disconnected:", socket.id);
+//   });
+// });
 
 configRoutes(app);
 
