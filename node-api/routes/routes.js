@@ -1,6 +1,6 @@
 import express from "express";
 import { Server } from "socket.io";
-import { startSerialPort, stopSerialPort } from "../services/serialService.js";
+import { startSerialPort, stopSerialPort, listSerialPorts } from "../services/serialService.js";
 
 const router = express.Router();
 let useFakeData = true;
@@ -23,6 +23,11 @@ router.get("/inspect", (req, res) => {
 router.get("/read-latest", (req, res) => {
   console.log(tevDataBuffer);
   tevDataBuffer.length > 0 ? res.json(tevDataBuffer) : res.status(204).send("No data available");
+});
+
+router.get("/ports", (req, res) => {
+  let w = listSerialPorts();
+  res.status(200).send({ data: w });
 });
 
 export default router;

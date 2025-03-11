@@ -1,6 +1,6 @@
 import express from "express";
 import { Server } from "socket.io";
-import { io as Client } from "socket.io-client";
+// import { io as Client } from "socket.io-client";
 import http from "http";
 import cors from "cors";
 import path from "path";
@@ -27,6 +27,7 @@ app.use(cors());
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 
+const connectionStartTime = Date.now();
 let latestData = null; // Buffer for the latest sensor data
 let isReading = false;
 let tevDataBuffer = [];
@@ -40,10 +41,26 @@ const sensorDataListener = (data) => {
 
 let isStreaming = false; // Flag to control data streaming
 
+setInterval(() => {
+  const memoryUsage = process.memoryUsage();
+  console.log(`Memory Usage: ${(memoryUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`);
+}, 5000);
+
+let messageCount = 0;
+setInterval(() => {
+  console.log(`Messages per second: ${messageCount}`);
+  messageCount = 0;
+}, 1000); // Reset every secon
+
 //* Connection with frontend
 let intervalId;
 let iteration = 0;
 io.on("connection", (socket) => {
+  socket.emit("connection-ack", { message: "Connected to server" });
+
+  const latency = Date.now() - connectionStartTime;
+  console.log(`Connection latency for ${socket.id}: ${latency}ms`);
+
   console.log("Front End Client connected:", socket.id);
   let parser;
   let port;
@@ -81,7 +98,9 @@ io.on("connection", (socket) => {
       // emit data to frontend
       // socket.emit("sensor-data", data);
       io.to("fake-data").emit("sensor-data", data);
-      console.log("Sent:", data);
+      messageCount++;
+
+      console.log(`Sent:`, data);
     }, 200);
   });
 
@@ -96,38 +115,26 @@ io.on("connection", (socket) => {
         socket.emit("sensor-error", err);
       } else {
         console.log("Port opened successfully!");
-        isPort = true;  
+        isPort = true;
         parser = port.pipe(new ReadlineParser({ delimiter: "\n" }));
 
         parser.on("data", (data) => {
+          const startTime = Date.now();
+
           if (isFirstLine) {
             console.log(`Ignoring first line: ${data}`);
             isFirstLine = false; // Skip the first line
             return;
           }
-          console.log(data.toString().trim());
-  
-          io.to("real-data").emit("sensor-data", data.toString().trim());
-        });
+          // console.log(data.toString().trim());
 
+          io.to("real-data").emit("sensor-data", data.toString().trim());
+          messageCount++;
+          const processingTime = Date.now() - startTime;
+          console.log(`Processing time: ${processingTime}ms`);
+        });
       }
     });
-
-    // parser = port.pipe(new ReadlineParser({ delimiter: "\n" }));
-    // // Real data
-    // if (isPort) {
-    //   parser.on("data", (data) => {
-    //     console.log(data)
-    //     if (isFirstLine) {
-    //       console.log(`Ignoring first line: ${data}`);
-    //       isFirstLine = false; // Skip the first line
-    //       return;
-    //     }
-    //     console.log(data.toString().trim());
-
-    //     io.to("real-data").emit("sensor-data", data.toString().trim());
-    //   });
-    // }
   });
 
   // Listener to stop data streaming
@@ -137,8 +144,8 @@ io.on("connection", (socket) => {
     // // Real Data
     if (isPort) {
       // parser.close("data");
-      port.close()
-      isPort = false
+      port.close();
+      isPort = false;
     }
     // Fake Data
     if (intervalId) {
@@ -159,17 +166,8 @@ io.on("connection", (socket) => {
   });
 });
 
-// // Handle socket connections
-// io.on("connection", (socket) => {
-//   console.log("Front End Client connected:", socket.id);
-
-//   socket.on("disconnect", () => {
-//     console.log("Front End Client disconnected:", socket.id);
-//   });
-// });
-
 configRoutes(app);
 
 server.listen(3000, () => {
-  console.log(`NutritionAI listening at http://localhost:3000`);
+  console.log(`Server listening at http://localhost:3000`);
 });

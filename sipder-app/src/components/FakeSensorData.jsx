@@ -53,7 +53,7 @@ const SensorData = () => {
     });
 
     socket.on("sensor-data", (data) => {
-      console.log("Received data: ", data);
+      // console.log("Received data: ", data);
       const currentTime = new Date().toLocaleTimeString();
 
       if (data.includes("Ultra=")) {
@@ -65,9 +65,10 @@ const SensorData = () => {
       }
 
       if (data.includes("TEV=")) {
-        console.log(currentTime);
-        const value = parseFloat(data.split("=")[1]);
-        setTevData((prev) => (prev.length >= 10 ? [...prev.slice(1), value] : [...prev, value]));
+        const value = data.split("=")[1];
+        const cycle = data.split("/")[1];
+        let ppc = cycle / 30;
+        setTevData((prev) => (prev.length >= 10 ? [...prev.slice(1), ppc] : [...prev, ppc]));
         setTimestampsTEV((prev) =>
           prev.length >= 10 ? [...prev.slice(1), currentTime] : [...prev, currentTime]
         );
@@ -175,6 +176,8 @@ const SensorData = () => {
       y: {
         title: { display: true, text: "Sensor Value" },
         beginAtZero: true,
+        min: 0,
+        max: 50,
       },
     },
     plugins: {
@@ -233,7 +236,7 @@ const SensorData = () => {
 
   return (
     <div style={{ width: "80%", margin: "auto", textAlign: "center" }}>
-      <h1 className="text-2xl font-bold py-4 px-2">Fake Sensor Data Visualization</h1>
+      <h1 className="text-2xl font-bold py-4 px-2">Emulated Sensor Data Visualization</h1>
       <button
         onClick={startReading}
         disabled={isConnected}
@@ -255,7 +258,6 @@ const SensorData = () => {
       </div>
 
       <div style={{ height: "400px", marginTop: "20px" }}>
-        {console.log(scatterData)}
         <Scatter data={scatterData} options={optionsScatter} />
       </div>
     </div>
