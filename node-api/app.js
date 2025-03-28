@@ -9,6 +9,8 @@ import configRoutes from "./routes/index.js";
 import { SerialPort } from "serialport";
 import { ReadlineParser } from "serialport";
 
+import { listSerialPorts } from "./services/serialService.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -33,6 +35,42 @@ let isReading = false;
 let tevDataBuffer = [];
 let isFirstLine = true;
 
+let previousPorts = [];
+/**
+ * @returns {Array} Detected port paths
+ */
+async function detectSerialPortChanges() {
+  setInterval(async () => {
+    const allowedVendors = ["0403"]; // vendor IDs (FTDI)
+    const ports = await SerialPort.list();
+    const trustedPorts = ports.filter((port) => allowedVendors.includes(port.vendorId));
+    const portPaths = trustedPorts.map((port) => port.path);
+
+    if (JSON.stringify(portPaths) !== JSON.stringify(previousPorts)) {
+      console.log("Serial port change detected:", portPaths);
+      previousPorts = portPaths;
+    }
+
+    // Check for new ports
+    const newPorts = portPaths.filter((port) => !previousPorts.includes(port));
+    if (newPorts.length > 0) {
+      console.log("New serial ports connected:", newPorts);
+      previousPorts = portPaths;
+    }
+
+    // Check for removed ports
+    const removedPorts = previousPorts.filter((port) => !portPaths.includes(port));
+    if (removedPorts.length > 0) {
+      console.log("Serial ports disconnected:", removedPorts);
+      previousPorts = portPaths;
+    }
+
+    return previousPorts;
+  }, 1000); // Check every 2 seconds
+}
+
+detectSerialPortChanges();
+
 const sensorDataListener = (data) => {
   tevDataBuffer.push(data);
   console.log(data);
@@ -41,16 +79,17 @@ const sensorDataListener = (data) => {
 
 let isStreaming = false; // Flag to control data streaming
 
-setInterval(() => {
-  const memoryUsage = process.memoryUsage();
-  console.log(`Memory Usage: ${(memoryUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`);
-}, 5000);
+// ! CODE FOR TESTING PERFORMANCE
+// setInterval(() => {
+//   const memoryUsage = process.memoryUsage();
+//   console.log(`Memory Usage: ${(memoryUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`);
+// }, 5000);
 
-let messageCount = 0;
-setInterval(() => {
-  console.log(`Messages per second: ${messageCount}`);
-  messageCount = 0;
-}, 1000); // Reset every secon
+// let messageCount = 0;
+// setInterval(() => {
+//   console.log(`Messages per second: ${messageCount}`);
+//   messageCount = 0;
+// }, 1000); // Reset every secon
 
 //* Connection with frontend
 let intervalId;
@@ -98,7 +137,7 @@ io.on("connection", (socket) => {
       // emit data to frontend
       // socket.emit("sensor-data", data);
       io.to("fake-data").emit("sensor-data", data);
-      messageCount++;
+      // messageCount++;
 
       console.log(`Sent:`, data);
     }, 200);
@@ -109,32 +148,63 @@ io.on("connection", (socket) => {
     socket.join("real-data");
     console.log("Read command received");
 
-    port = new SerialPort({ path: "COM6", baudRate: 115200 }, (err) => {
-      if (err) {
-        console.error("Error opening port:", err.message);
-        socket.emit("sensor-error", err);
-      } else {
-        console.log("Port opened successfully!");
-        isPort = true;
-        parser = port.pipe(new ReadlineParser({ delimiter: "\n" }));
+    // Connect and collect the streamed data
+    if (previousPorts.length > 0) {
+      port = new SerialPort({ path: previousPorts[0], baudRate: 115200 }, (err) => {
+        if (err) {
+          console.error("Error opening port:", err.message);
+          socket.emit("sensor-error", err);
+        } else {
+          console.log("Port opened successfully!");
 
-        parser.on("data", (data) => {
-          const startTime = Date.now();
+          // ! Needs to check if there is data coming out, if there isn't disconnect
 
-          if (isFirstLine) {
-            console.log(`Ignoring first line: ${data}`);
-            isFirstLine = false; // Skip the first line
-            return;
-          }
-          // console.log(data.toString().trim());
+          isPort = true;
+          parser = port.pipe(new ReadlineParser({ delimiter: "\n" }));
 
-          io.to("real-data").emit("sensor-data", data.toString().trim());
-          messageCount++;
-          const processingTime = Date.now() - startTime;
-          console.log(`Processing time: ${processingTime}ms`);
-        });
-      }
-    });
+          let timeout;
+          const TIMEOUT_DURATION = 5000;
+
+          const resetTimeout = () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+              console.error("⚠️ No data received for 5 seconds! Disconnecting...");
+              io.to("real-data").emit("sensor-error", "No data received for 5 seconds");
+              port.close(); // Close the serial port
+            }, TIMEOUT_DURATION);
+          };
+
+          // Start timeout in case no data comes at all
+          resetTimeout();
+
+          parser.on("data", (data) => {
+            const startTime = Date.now();
+
+            if (isFirstLine) {
+              console.log(`Ignoring first line: ${data}`);
+              isFirstLine = false; // Skip the first line
+              return;
+            }
+
+            resetTimeout();
+
+            io.to("real-data").emit("sensor-data", data.toString().trim());
+            // messageCount++;
+            const processingTime = Date.now() - startTime;
+            console.log(`Processing time: ${processingTime}ms`);
+          });
+
+          // Handle port errors properly
+          parser.on("error", (err) => {
+            console.error("⚠️ Serial port error:", err.message);
+            io.to("real-data").emit("sensor-error", err.message);
+            clearTimeout(timeout);
+            port.close();
+          });
+        }
+      });
+    }
+    s;
   });
 
   // Listener to stop data streaming

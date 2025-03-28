@@ -1,0 +1,7 @@
+@media print {
+    #survey-Download { display:none !important }
+    .navbar-bottom { display:none !important }
+    .dropup { display:none !important }
+    div.switchgear-layout { white-space:normal !important }
+    a[href]:after { content:none !important }
+}

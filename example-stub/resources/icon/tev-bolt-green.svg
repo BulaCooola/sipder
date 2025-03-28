@@ -1,0 +1,16 @@
+<svg width="90.379" height="90.231" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 90.379 90.231">
+ <title>Black Lightning Bolt</title>
+
+ <g>
+  <title>background</title>
+  <rect fill="none" id="canvas_background" height="402" width="582" y="-1" x="-1"/>
+ </g>
+ <g id="layer1">
+  <g transform="matrix(0.050076, 0, 0, 0.050076, 5.9062, 252.37)" id="g30">
+   <title fill="#008000">Layer 1</title>
+   <path fill="#008000" stroke-width="0" fill-rule="evenodd" d="m894.195251,-4483.84082l-302.649963,293.790039l163.140015,5.429688l-258.850037,245.120117l109.639954,1.949951l-181.669983,191.22998l438.950012,-233.26001l-163.390015,1.640137l330.73999,-251.649902l-178.909973,-0.419922l293.960022,-261.680176l-250.960022,7.845703l0,0.004395z" id="path4828"/>
+  </g>
+  <path fill="none" stroke-width="10.5" stroke-linecap="round" stroke="#008000" d="m5.325,5.25l79.73,0" id="path4193"/>
+  <use x="0" y="79.730003" stroke="#ffff00" width="100%" height="100%" xlink:href="#path4193" id="use4195"/>
+ </g>
+</svg>

@@ -1,0 +1,20 @@
+<svg width="160" height="150" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 150">
+ <!-- Created with Method Draw - http://github.com/duopixel/Method-Draw/ -->
+
+ <g>
+  <title>background</title>
+  <rect fill="#fff" id="canvas_background" height="152" width="162" y="-1" x="-1"/>
+  <g display="none" id="canvasGrid">
+   <rect fill="url(#gridpattern)" stroke-width="0" y="0" x="0" height="100%" width="100%" id="svg_2"/>
+  </g>
+ </g>
+ <g>
+  <title>Layer 1</title>
+  <path id="svg_1" d="m15.001182,75.012779l0,0c0,-36.408783 29.372331,-65.924148 65.604913,-65.924148l0,0c17.399849,0 34.086906,6.945743 46.390312,19.308787c12.303139,12.363102 19.215309,29.13118 19.215309,46.61536l0,0c0,36.408669 -29.372635,65.923988 -65.605621,65.923988l0,0c-36.232582,0 -65.604913,-29.51532 -65.604913,-65.923988zm65.604913,-65.924148l0,131.848136m-65.604913,-65.923988l131.210534,0" stroke-width="16" stroke="#008000" fill="#fff"/>
+  <path id="svg_3" d="m25.181278,74.904259l0,0c0,-30.780838 24.667652,-55.7342 55.095524,-55.7342l0,0c14.613136,0 28.626236,5.872299 38.95903,16.32449c10.332893,10.451584 16.136909,24.628284 16.136909,39.40971l0,0c0,30.780945 -24.666695,55.734108 -55.09594,55.734108l0,0c-30.427872,0 -55.095524,-24.953163 -55.095524,-55.734108zm55.095524,-55.7342l0,111.468307m-55.095524,-55.734108l110.191463,0" fill-opacity="null" stroke-width="13" stroke="#ffffff" fill="#fff"/>
+  <line stroke-linecap="null" stroke-linejoin="null" id="svg_5" y2="77.324847" x2="147.070031" y1="76.050962" x1="14.586015" fill-opacity="null" stroke-width="13" stroke="#008000" fill="none"/>
+  <line stroke-linecap="null" stroke-linejoin="null" id="svg_6" y2="98.343946" x2="93.566871" y1="55.668806" x1="93.566871" fill-opacity="null" stroke-width="13" stroke="#008000" fill="none"/>
+  <line stroke-linecap="null" stroke-linejoin="null" id="svg_8" y2="98.343946" x2="80.828023" y1="55.668806" x1="80.828023" fill-opacity="null" stroke-width="13" stroke="#ffffff" fill="none"/>
+  <line stroke-linecap="null" stroke-linejoin="null" id="svg_9" y2="98.343946" x2="68.089175" y1="55.668806" x1="68.089175" fill-opacity="null" stroke-width="13" stroke="#008000" fill="none"/>
+ </g>
+</svg>

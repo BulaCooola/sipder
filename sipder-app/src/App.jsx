@@ -1,6 +1,7 @@
 import { useState } from "react";
 import FakeSensorData from "./components/FakeSensorData";
 import SensorData from "./components/SensorData";
+import Workflow from "./pages/Workflow";
 // import { io as Client } from "socket.io-client";
 import "./App.css";
 import HomePage from "./components/HomePage";
@@ -24,6 +25,7 @@ function App() {
         <Route path="" element={<HomePage />} />
         <Route path="/fake-sensor" element={<FakeSensorData />} />
         <Route path="/real-sensor" element={<SensorData />} />
+        <Route path="/workflow" element={<Workflow />} />
       </Routes>
     </div>
   );

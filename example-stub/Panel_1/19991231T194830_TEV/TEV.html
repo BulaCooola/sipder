@@ -1,0 +1,1107 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../resources/scripts/bootstrap-3.3.6-dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../../resources/scripts/bootstrap-3.3.6-dist/css/bootstrap-theme.min.css">
+
+    <script src="../../resources/scripts/jquery-1.11.3/jquery.min.js"></script>
+    <script src="../../resources/scripts/bootstrap-3.3.6-dist/js/bootstrap.min.js"></script>
+    <script src="../../resources/scripts/jquery-1.11.3/jquery.flot.min.js"></script>
+    <script src="../../resources/scripts/jquery-1.11.3/jquery.flot.axislabels.js"></script>
+    <script src="../../resources/scripts/jquery-1.11.3/jquery.flot.selection.js"></script>
+    <script src="../../resources/scripts/jquery-1.11.3/base64.js"></script>
+    <script src="../../resources/scripts/jquery-1.11.3/canvas2image.js"></script>
+    <script src="../../resources/scripts/jquery-1.11.3/jquery.flot.saveAsImage.js"></script>
+    <script src="../../resources/scripts/jquery-1.11.3/jquery.flot.canvas.js"></script>
+    <script src="../../resources/scripts/jquery-1.11.3/jquery.flot.legendoncanvas.js"></script>
+    <script src="../../resources/scripts/jquery-1.11.3/jquery.flot.time.js"></script>
+    <script src="../../resources/scripts/jquery-1.11.3/date.js"></script>
+    <script src="../../resources/language.js"></script>
+    <script src="../../survey_metadata.js"></script>
+    <script src="measurement_metadata.js"></script>
+</head>
+
+<body>
+
+    <header>
+        <div class="container-fluid" style="width:100%; height:auto; text-align:center">
+            <h2 style="width:12%; float:left; position:relative;" align="left"><img class="image-responsive" src="../../resources/icon/EA 200px high.jpg" style="max-width:50%;max-height:50%"></h2>
+            <h2 style="width:15%; float:right; position:relative;" align="right"><img class="image-responsive" src="../../resources/icon/Plus2 Logo 200px high.jpg" style="max-width:50%;max-height:50%"></h2>
+            <h1 style="color:#ADBCE6; display:inline-block; margin:1%; font-weight:bold" id="survey-name"></h1>
+        </div>
+    </header>
+
+    <ul class="nav nav-tabs nav-rtl" role="tablist">
+        <li class="active">
+            <a id="$PHASE" data-toggle="tab" href="#phase"></a>
+        </li>
+        <li>
+            <a id="$HISTOGRAM" data-toggle="tab" href="#phase"></a>
+        </li>
+        <li>
+            <a id="$WAVEFORMS" data-toggle="tab" href="#phase"></a>
+        </li>
+        <li>
+            <a id="nfctab" data-toggle="tab" href="#phase"></a>
+        </li>
+        <li><a id="$AUDIO" data-toggle="tab" href="#download"></a></li>
+    </ul>
+
+    <div class="survey col-md-3 col-sm-3 col-lg-3" style="padding:1%;z-index:2000;">
+        <div id="survey-container" style="overflow:auto">
+
+        </div>
+        <div class="panel panel-info" id="csvdownload" style="overflow:auto;">
+            <div class="panel-heading" id="graphcsv"></div>
+            <table class="table table-hover">
+                <tbody>
+                    <tr>
+                        <td style="text-align:center;">
+                            <button id="csvbutton" onclick="exportToCSV();"><img style="height:20px; width:20px;" src="../../resources/icon/download.svg"></button>
+                        </td>
+                        <td style="text-align:center;">
+                            <button id="refreshbutton" onclick="RefreshGraph();"><img style="height:20px; width:20px;" src="../../resources/icon/refresh.svg"></button>
+                        </td>
+                    </tr>
+                    <tr id="wavecontrol" style="display:none;">
+                        <td style="text-align:center;">
+                            <input type="number" id="waveformnum" onChange="waveformChanged();">
+                        </td>
+                        <td style="text-align:center;">
+                            <button id="waveformsbutton"></button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="tab-content" style="padding:1%;">
+        <div id="phase" class="tab-pane in active" style="width:70%;height:70%;float:left;">
+        </div>
+        <div id="download" class="tab-pane">
+            <div id="layout-container" class="content-body">
+                 <div class="audio-components row-md-3" style="width: 70%">
+                     <div class="download col-md-2" style="text-align: center;">
+                         <div id="audioplay_link"><a id="audioplay" href="8k.wav"></a></div>
+                         <div id="audioplayer"><audio controls><source src="8k.wav" type="audio/wav">Your browser does not support the audio element.</audio></div>
+                     </div>              
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="navbar-fixed-bottom" style="text-align:right;font-style:italic;">
+        <a id="version-num" href="../../resources/instrument.html"></a>
+        <div class="dropup" style="text-align:right;">
+            <button class="btn btn-default dropdown-toggle" type="button" id="menu1" data-toggle="dropdown">
+                <span class="caret"></span></button>
+            <ul id="dropdownitems" class="dropdown-menu" role="menu" aria-labelledby="menu1" style="left:auto;right:0;">
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        var dropdowndiv = document.getElementById("dropdownitems");
+        for (var languageset = 0; languageset < languages.Languages.length; languageset++) {
+            var li = document.createElement('LI');
+            var a = document.createElement('a');
+            li.setAttribute("role", "presentation");
+            li.setAttribute("id", languageset);
+            li.setAttribute("onclick", "ChangeLanguage(this.id)");
+            a.setAttribute("role", "menuitem");
+            a.setAttribute("tabindex", "-1");
+            a.innerHTML = languages.Languages[languageset];
+            dropdowndiv.appendChild(li);
+            li.appendChild(a);
+        }
+        var languagekeys = labels;
+        var cookie = document.cookie;
+        var languageloc;
+        if (cookie) {
+            languageloc = languages.Languages.indexOf(cookie);
+        } else {
+            languageloc = 0;
+        }
+
+        function ConvertKeyLanguage(key) {
+            for (i = 0; i < languagekeys.length; i++) {
+                if (languagekeys[i][key]) {
+                    var data = languagekeys[i][key][languageloc];
+                    if (data != undefined) {
+                        return data;
+                    } else {
+                        return key.replace("$", "");
+                    }
+                }
+            }
+            return key.replace("$", "");
+        }
+        BuildStatics();
+        BuildMetadata();
+
+        function ChangeLanguage(languageid) {
+
+            if ("localStorage" in window && window["localStorage"] != null) {
+                localStorage.setItem('languageid', languageid);
+            }
+
+            languageloc = languageid;
+            var metalayout = document.getElementById("survey-container");
+            while (metalayout.firstChild) {
+                metalayout.removeChild(metalayout.firstChild);
+            }
+            BuildStatics();
+            BuildMetadata();
+            document.getElementById("$PHASE").click();
+
+        }
+
+        function BuildStatics() {
+            var tabs = ["$PHASE", "$HISTOGRAM", "$WAVEFORMS", "$AUDIO"];
+
+            for (j = 0; j < tabs.length; j++) {
+                document.getElementById(tabs[j]).innerHTML = ConvertKeyLanguage(tabs[j]);
+            }
+            var versionnum = document.getElementById("version-num");
+            versionnum.textContent = survey_metadata.Instrument["$FIRMWARE_VERSION"];
+            document.getElementById("audioplay").innerHTML = ConvertKeyLanguage("$PLAY");
+            document.getElementById("graphcsv").innerHTML = ConvertKeyLanguage("$GRAPH_CONTROL");
+            document.getElementById("nfctab").innerHTML = ConvertKeyLanguage("$NFC");
+            document.getElementById("csvbutton").title = ConvertKeyLanguage("$DOWNLOAD_CSV");
+            document.getElementById("refreshbutton").title = ConvertKeyLanguage("$REFRESH_GRAPH");
+            document.getElementById("waveformsbutton").innerHTML = ConvertKeyLanguage("$SHOW_ALL");
+            document.getElementById("menu1").innerHTML = languages.Languages[languageloc];
+
+            // Show audio player or link depending on browser compatibility
+            if(/msie/i.test(navigator.userAgent) || /trident/i.test(navigator.userAgent)) {
+                document.getElementById("audioplayer").style.display = "none";
+                document.getElementById("audioplay_link").style.display = "block";
+            } else {
+                document.getElementById("audioplayer").style.display = "block";
+                document.getElementById("audioplay_link").style.display = "none";
+            }
+        }
+
+        function BuildMetadata() {
+
+            var data = measurement_metadata.measurement_fields;
+            var surveyContainer = null;
+            var fieldValues = null;
+            var group = null;
+
+            for (var k = 0; k < data.length; k++) {
+                fieldValues = data[k].fields;
+                group = data[k].group;
+
+                surveyContainer = document.getElementById("survey-container");
+                var panelInfo = document.createElement('div');
+                surveyContainer.appendChild(panelInfo);
+                panelInfo.id = "survey-" + group;
+                panelInfo.className = "panel panel-info";
+
+                var headerContainer = document.getElementById(panelInfo.id);
+                var panelHeader = document.createElement('div');
+                headerContainer.appendChild(panelHeader);
+                panelHeader.id = panelInfo.id + "-header";
+                panelHeader.className = "panel-heading";
+                panelHeader.textContent = ConvertKeyLanguage(group);
+
+                var bodyContainer = document.getElementById(panelInfo.id);
+                var panelBody = document.createElement('div');
+                bodyContainer.appendChild(panelBody);
+                panelBody.id = panelInfo.id + "-body";
+                panelBody.className = "panel-body";
+
+
+                var container = document.getElementById(panelBody.id);
+                var table = document.createElement('TABLE');
+                container.appendChild(table);
+                table.id = panelInfo.id + "-table";
+                table.className = 'table table-hover';
+                table.setAttribute("style", "font-size:90%;");
+
+                var tableBody = document.createElement('TBODY');
+                table.appendChild(tableBody);
+
+                for (d = 0; d < fieldValues.length; d++) {
+                    var tr = null;
+                    var td1 = null;
+                    var td2 = null;
+                    var datafield = fieldValues[d].data.toString();
+                    var keycheck = datafield.charAt(0);
+                    if (keycheck == "$") {
+                        var dataContent = ConvertKeyLanguage(fieldValues[d].data);
+                    } else {
+                        var dataContent = fieldValues[d].data;
+                    }
+                    var label = ConvertKeyLanguage(fieldValues[d].fieldname).replace(/[\n\r]/g, '');
+                    if (fieldValues[d].fieldname == "$MEASURE_PPC") {
+                        dataContent = dataContent.toFixed(2);
+                    }
+                    if (fieldValues[d].fieldname == "$NOISE_LEVEL") {
+                        dataContent = dataContent.toFixed(0);
+                    }
+
+
+                    tr = document.createElement('TR');
+                    tableBody.appendChild(tr);
+
+                    td1 = document.createElement('TD');
+                    tr.appendChild(td1);
+                    td1.style.width = "50%";
+                    td1.textContent = label + ":";
+
+
+                    td2 = document.createElement('TD');
+                    tr.appendChild(td2);
+                    td2.style.width = "50%";
+                    td2.textContent = dataContent;
+
+                    if (fieldValues[d].fieldname == "$ASSET_NAME") {
+                        var surveyName = document.getElementById("survey-name");
+                        $('#survey-name').text(ConvertKeyLanguage("$TEV") + " - " + fieldValues[d].data);
+                        document.title = ConvertKeyLanguage("$TEV") + " - " + fieldValues[d].data;
+                    }
+                }
+            }
+        }
+
+        // Set waveform scale/offset depending on HW version
+        var waveform_scale;
+        var waveform_offset;
+
+        if (survey_metadata.Instrument["$HARDWARE_VERSION"] < 8) {
+            waveform_scale = 0.008718396;
+            waveform_offset = -3.3391456;
+        } else {
+            waveform_scale = 0.01243111;
+            waveform_offset = -6.242490;
+        }
+    </script>
+
+    <script src="events.js"></script>
+    <script>
+        var currentgraph = "phase";
+        var currentdataset;
+        var nfcdataset;
+        var nfctooltips = [];
+        var trendarrays = [
+            [],
+            [],
+            [],
+            []
+        ];
+        var measuretypes = ["$MEASURE_DB", "$MEASURE_PPC", "$MEASURE_DBUV", "$MEASURE_PC"];
+        var currentgraphdata = [];
+
+        window.onload = function() {
+            getPhaseData();
+            getNFCData();
+            GetWaveform(true);
+            getHistogramData();
+            document.getElementById('waveformnum').value = "1";
+
+            if ("localStorage" in window && window["localStorage"] != null) {
+                var local_languageid = localStorage.getItem('languageid');
+                if (local_languageid) {
+                    ChangeLanguage(local_languageid);
+                }
+            }
+        };
+        var div = document.getElementById('$PHASE');
+
+        div.addEventListener('click', function(event) {
+            document.getElementById('wavecontrol').style.display = "none";
+            currentgraph = "phase";
+        });
+        div.addEventListener('click', function(event) {
+            var phasexoptions = {
+                min: 0,
+                max: 360,
+                tickSize: 90,
+                axisLabel: ConvertKeyLanguage("$UNIT_DEGS"),
+                axisLabelUseCanvas: true
+            };
+            var phaseyoptions = {
+                min: 0,
+                max: 60,
+                axisLabel: ConvertKeyLanguage("$UNIT_DB"),
+                axisLabelUseCanvas: true
+            };
+
+            drawPhasegraph(currentdataset, phasexoptions, phaseyoptions);
+        });
+        $('#nfctab').on("click", function() {
+            setTimeout(function() {
+                document.getElementById('csvdownload').style.display = "block";
+                document.getElementById('wavecontrol').style.display = "none";
+                drawNFCgraph(nfcdataset);
+            }, 1);
+            currentgraph = "nfc";
+        });
+
+        function RefreshGraph() {
+            switch (currentgraph) {
+                case "phase":
+                    var phasexoptions = {
+                        min: 0,
+                        max: 360,
+                        tickSize: 90,
+                        axisLabel: ConvertKeyLanguage("$UNIT_DEGS"),
+                        axisLabelUseCanvas: true
+                    };
+                    var phaseyoptions = {
+                        min: 0,
+                        max: 60,
+                        axisLabel: ConvertKeyLanguage("$UNIT_DB"),
+                        axisLabelUseCanvas: true
+                    };
+                    drawPhasegraph(currentdataset, phasexoptions, phaseyoptions);
+                    break;
+                case "histogram":
+                    var options = {
+                        yaxis: {
+                            ticks: tickarray,
+                            transform: function(v) {
+                                return Math.log(v + 1);
+                            },
+                            axisLabel: ConvertKeyLanguage("$UNIT_COUNT"),
+                            axisLabelUseCanvas: true
+                        },
+                        xaxis: {
+                            axisLabel: ConvertKeyLanguage("$UNIT_DB"),
+                            min: 0,
+                            max: 60,
+                            axisLabelUseCanvas: true
+                        },
+                        grid: {
+                            hoverable: true,
+                            clickable: true,
+                            color: "#999"
+                        }
+                    };
+                    document.getElementById('histolowerbound').value = 0;
+                    document.getElementById('histoupperbound').value = 60;
+                    drawHistogramgraph(currentgraphdata[1], options);
+                    break;
+                case "waveform":
+                    xoptions = {
+                        axisLabel: ConvertKeyLanguage("$UNIT_US"),
+                        axisLabelUseCanvas: true
+                    };
+                    yoptions = {
+                        axisLabel: ConvertKeyLanguage("$UNIT_DB"),
+                        axisLabelUseCanvas: true
+                    };
+                    isSingle = true;
+                    drawWaveformgraph([wavedataset[document.getElementById('waveformnum').value - 1]], xoptions, yoptions);
+                    break;
+
+            }
+        }
+
+        $("#phase").bind("plotselected", function(event, ranges) {
+            var xoptions = {
+                min: ranges.xaxis.from,
+                max: ranges.xaxis.to,
+                axisLabel: ConvertKeyLanguage("$UNIT_DEGS"),
+                axisLabelUseCanvas: true
+            };
+            var yoptions = {
+                min: ranges.yaxis.from,
+                max: ranges.yaxis.to,
+                axisLabel: ConvertKeyLanguage("$UNIT_DB"),
+                axisLabelUseCanvas: true
+            };
+            if (currentgraph == "waveform") {
+                var xoptions = {
+                    min: ranges.xaxis.from,
+                    max: ranges.xaxis.to,
+                    axisLabel: ConvertKeyLanguage("$UNIT_US"),
+                    axisLabelUseCanvas: true
+                };
+                var yoptions = {
+                    min: ranges.yaxis.from,
+                    max: ranges.yaxis.to,
+                    axisLabel: ConvertKeyLanguage("$UNIT_DB"),
+                    axisLabelUseCanvas: true
+                };
+
+                if (isSingle) {
+                    drawWaveformgraph([wavedataset[document.getElementById('waveformnum').value - 1]], xoptions, yoptions);
+                } else {
+                    drawWaveformgraph(wavedataset, xoptions, yoptions);
+                }
+            } else {
+                drawPhasegraph(currentdataset, xoptions, yoptions);
+            }
+
+
+        });
+
+        function getNFCData() {
+            var rawtrendarray = measurement_metadata.Trend;
+            var nfcfinaldata = [];
+            var measuretypeno;
+            for (n = 0; n < rawtrendarray.length; n++) {
+                for (var key in rawtrendarray[n]) {
+                    switch (key) {
+                        case measuretypes[0]:
+                            measuretypeno = 0;
+                            addNFCData(rawtrendarray, measuretypeno);
+                            break;
+                        case measuretypes[1]:
+                            measuretypeno = 1;
+                            addNFCData(rawtrendarray, measuretypeno);
+                            break;
+                        case measuretypes[2]:
+                            measuretypeno = 2;
+                            addNFCData(rawtrendarray, measuretypeno);
+                            break;
+                        case measuretypes[3]:
+                            measuretypeno = 3;
+                            addNFCData(rawtrendarray, measuretypeno);
+                            break;
+                    }
+                }
+            }
+
+            for (s = 0; s < trendarrays.length; s++) {
+                if (trendarrays[s].length > 0) {
+                    if (nfcfinaldata.length == 0) {
+                        nfcfinaldata.push({
+                            data: trendarrays[s],
+                            label: ConvertKeyLanguage(measuretypes[s])
+                        })
+                    } else {
+                        nfcfinaldata.push({
+                            data: trendarrays[s],
+                            label: ConvertKeyLanguage(measuretypes[s]),
+                            yaxis: nfcfinaldata.length + 1
+                        })
+                    }
+                }
+            }
+
+            nfcdataset = nfcfinaldata;
+        }
+
+        function addNFCData(rawtrendarray, measuretypeno) {
+            var datestring = timeStringConvert(rawtrendarray[n].date);
+            var unixtime = Date.parse(datestring).getTime();
+
+            nfctooltips.push([
+                [datestring, rawtrendarray[n][measuretypes[measuretypeno]]], rawtrendarray[n]
+            ]);
+
+            trendarrays[measuretypeno].push([unixtime, Number(rawtrendarray[n][measuretypes[measuretypeno]])]);
+        }
+
+        function timeStringConvert(value) {
+            var year = value.substring(0, 4);
+            var month = value.substring(4, 6);
+            var day = value.substring(6, 8);
+            var hour = value.substring(9, 11);
+            var minute = value.substring(11, 13);
+            var second = value.substring(13, 15);
+
+            var datestring = year + "-" + month + "-" + day + "  " + hour + ":" + minute + ":" + second;
+            return datestring;
+        }
+
+
+        function drawNFCgraph(series) {
+            var plot = $.plot("#phase",
+                series, {
+                    series: {
+                        points: {
+                            show: true
+                        },
+                        lines: {
+                            show: true
+                        }
+                    },
+                    xaxis: {
+                        mode: "time",
+                        timeformat: "%Y/%m/%d\n%h:%M:%S",
+                        // Don't set ticksize, let flot autoscale time ticks
+                        timezone: "browser"
+                    },
+                    yaxes: [{
+                        min: 0
+                    }, {
+                        // Don't set ticksize, let float autoscale PPC ticks
+                        position: "right"
+                    }],
+                    grid: {
+                        hoverable: true
+                    }
+                }
+            );
+            return plot;
+        };
+
+        $("#phase").bind("plothover", function(event, pos, item) {
+            if (item) {
+                if (previousPoint != item.dataIndex) {
+                    previousPoint = item.dataIndex;
+
+                    $("#tooltip").remove();
+
+                    var x = item.datapoint[0];
+                    var y = item.datapoint[1];
+
+                    if (currentgraph == "nfc") {
+                        for (o = 0; o < nfctooltips.length; o++) {
+                            if (Date.parse(timeStringConvert(nfctooltips[o][1].date)).getTime() == x) {
+                                var x = nfctooltips[o][0][0];
+                                var htmlstring = "(" + x + ")";
+                                for (var key in nfctooltips[o][1]) {
+                                    if (key != "date") {
+                                        if (nfctooltips[o][1].hasOwnProperty(key)) {
+                                            htmlstring = htmlstring + "<br/>" + ConvertKeyLanguage(key) + " : <strong>" + ConvertKeyLanguage(nfctooltips[o][1][key]) + "</strong>";
+                                        }
+                                    }
+                                }
+                                showTooltip(item.pageX, item.pageY,
+                                    htmlstring);
+                                break;
+                            }
+
+                        }
+                    } else {
+                        showTooltip(item.pageX, item.pageY,
+                            "<br/>" + "<strong>" + Number((y).toFixed(2)) + "</strong> (" + x + ")");
+                    }
+                }
+            } else {
+                $("#tooltip").remove();
+                previousPoint = null;
+            }
+        });
+
+
+
+        function showTooltip(x, y, contents) {
+            $('<div id="tooltip">' + contents + '</div>').css({
+                position: 'absolute',
+                display: 'none',
+                top: y + 5,
+                left: x + 20,
+                border: '2px solid #4572A7',
+                padding: '2px',
+                size: '10',
+                'border-radius': '6px 6px 6px 6px',
+                'background-color': '#fff',
+                opacity: 0.80
+            }).appendTo("body").fadeIn(200);
+        }
+
+        function exportToCSV() {
+            var data = [];
+            var filename;
+            var metadata = measurement_metadata.measurement_fields;
+            var metacsv = [];
+
+            for (var k = 0; k < metadata.length; k++) {
+                var fieldValues = metadata[k].fields;
+                for (d = 0; d < fieldValues.length; d++) {
+                    if (["$PANEL_NO", "$ASSET_NAME", "$COMPONENT", "$SUB_LOC", "$INSULATION", "$SWITCH_POS", "$COMMENTS"].indexOf(fieldValues[d].fieldname) >= 0) {
+                        var datafield = fieldValues[d].data.toString();
+                        var keycheck = datafield.charAt(0);
+                        if (keycheck == "$") {
+                            datafield = datafield.replace(/[\n\r]/g, '');
+                            var dataContent = ConvertKeyLanguage(datafield);
+                        } else {
+                            datafield = datafield.replace(/[\n\r]/g, '');
+                            var dataContent = datafield;
+                        }
+                        metacsv.push([ConvertKeyLanguage(fieldValues[d].fieldname), dataContent]);
+                    }
+                }
+            }
+
+
+            switch (currentgraph) {
+                case "phase":
+                    var unsorteddata = events.data;
+                    for (i = 0; i < unsorteddata.length; i++) {
+                        data.push(unsorteddata[i]);
+                    }
+                    data.unshift([ConvertKeyLanguage("$PEAK_AMP"), ConvertKeyLanguage("$INTEGRAL"), ConvertKeyLanguage("$PHASE_ANGLE"), ConvertKeyLanguage("$CYCLE_NO"), ConvertKeyLanguage("$RISE_TIME"), ConvertKeyLanguage("$PULSE_WIDTH")]);
+                    data.unshift(["", ""]);
+                    for (metacount = metacsv.length - 1; metacount > -1; metacount--) {
+                        data.unshift(metacsv[metacount]);
+                    }
+                    filename = "Phase";
+                    break;
+                case "histogram":
+                    var unsorteddata = events.data;
+                    for (i = 0; i < unsorteddata.length; i++) {
+                        data.push(unsorteddata[i]);
+                    }
+                    data.unshift([ConvertKeyLanguage("$PEAK_AMP"), ConvertKeyLanguage("$INTEGRAL"), ConvertKeyLanguage("$PHASE_ANGLE"), ConvertKeyLanguage("$CYCLE_NO"), ConvertKeyLanguage("$RISE_TIME"), ConvertKeyLanguage("$PULSE_WIDTH")]);
+                    data.unshift(["", ""]);
+                    for (metacount = metacsv.length - 1; metacount > -1; metacount--) {
+                        data.unshift(metacsv[metacount]);
+                    }
+                    filename = "Histogram";
+                    break;
+                case "waveform":
+                    // Add scale and offset
+                    metacsv.push(["Scale", waveform_scale]);
+                    metacsv.push(["Offset", waveform_offset]);
+                    var unsorteddata = waveforms.data;
+                    var currentfile = 0;
+                    data[currentfile] = [];
+                    for (i = 0; i < unsorteddata.length; i++) {
+                        if (i % 20 === 0 && i !== 0) {
+                            currentfile++;
+                            data[currentfile] = [];
+                        }
+                        data[currentfile].push(unsorteddata[i]);
+                    }
+                    filename = "Waveform";
+            }
+            if (currentgraph == "waveform") {
+                for (i = 0; i < data.length; i++) {
+                    data[i].unshift(["", ""]);
+                    for (metacount = metacsv.length - 1; metacount > -1; metacount--) {
+                        data[i].unshift(metacsv[metacount]);
+                    }
+
+                    var csvContent = "data:text/csv;charset=utf-8,";
+                    var blobContent = "";
+                    data[i].forEach(function(infoArray, index) {
+
+                        dataString = infoArray.join(",");
+                        csvContent += index < data[i].length ? dataString + "\n" : dataString;
+                        blobContent += index < data[i].length ? dataString + "\n" : dataString;
+
+                    });
+                    var blob = new Blob([blobContent], {
+                        type: 'text/csv;charset=utf-8;'
+                    });
+                    if (navigator.msSaveBlob) {
+                        navigator.msSaveBlob(blob, metacsv[1][1] + "_" + metacsv[2][1] + "_" + metacsv[3][1] + "_" + filename + "_" + (i + 1) + ".csv");
+                    } else {
+                        var encodedUri = encodeURI(csvContent);
+                        var link = document.createElement("a");
+                        link.setAttribute("href", encodedUri);
+                        link.setAttribute("download", metacsv[1][1] + "_" + metacsv[2][1] + "_" + metacsv[3][1] + "_" + filename + "_" + (i + 1) + ".csv");
+                        document.body.appendChild(link);
+                        link.click();
+                    }
+                }
+
+            } else {
+                var csvContent = "data:text/csv;charset=utf-8,";
+                var blobContent = "";
+                data.forEach(function(infoArray, index) {
+
+                    dataString = infoArray.join(",");
+                    csvContent += index < data.length ? dataString + "\n" : dataString;
+                    blobContent += index < data.length ? dataString + "\n" : dataString;
+
+                });
+                var blob = new Blob([blobContent], {
+                    type: 'text/csv;charset=utf-8;'
+                });
+                if (navigator.msSaveBlob) {
+                    navigator.msSaveBlob(blob, metacsv[1][1] + "_" + metacsv[2][1] + "_" + metacsv[3][1] + "_" + filename + "_" + (i + 1) + ".csv");
+                } else {
+                    var encodedUri = encodeURI(csvContent);
+                    var link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", metacsv[1][1] + "_" + metacsv[2][1] + "_" + metacsv[3][1] + "_" + filename + "_" + (i + 1) + ".csv");
+                    document.body.appendChild(link);
+                    link.click();
+                }
+            }
+        }
+
+
+        function getPhaseData() {
+            var raw = events.data;
+            var phasedata = [
+                [],
+                [],
+                [],
+                []
+            ];
+            var values = [];
+            var max = 0;
+            for (i = 0; i < raw.length; i++) {
+                var currentval = [raw[i][2], raw[i][0]];
+                var count = 0;
+                if (values.length == 0) {
+                    values.push([currentval[0], currentval[1], 0]);
+                }
+                graphvalueslength = values.length;
+                matchfound = false;
+                for (j = 0; j < graphvalueslength; j++) {
+                    if (currentval[0] == values[j][0] && currentval[1] == values[j][1]) {
+                        values[j][2] = values[j][2] + 1;
+                        count = values[j][2];
+                        matchfound = true;
+                        break;
+                    }
+                }
+                if (matchfound == false) {
+                    values.push([currentval[0], currentval[1], 1]);
+                    count = 1;
+                }
+                if (count > max) {
+                    max = count;
+                }
+            }
+
+            var range = [];
+            range[0] = max * 0.1;
+            range[1] = max * 0.45;
+            range[2] = max * 0.8;
+            range[3] = max;
+
+            for (i = 0; i < values.length; i++) {
+                if (values[i][2] <= range[0]) {
+                    phasedata[0].push(values[i]);
+                } else if (values[i][2] < range[1]) {
+                    phasedata[1].push(values[i]);
+                } else if (values[i][2] < range[2]) {
+                    phasedata[2].push(values[i]);
+                } else if (values[i][2] <= range[3]) {
+                    phasedata[3].push(values[i]);
+                }
+            }
+
+            currentgraphdata[0] = phasedata;
+
+            var finaldata = [{
+                label: "< " + Math.round(range[0]),
+                data: phasedata[0],
+                points: {
+                    fillColor: "#00FF00"
+                },
+                color: "#00FF00"
+            }, {
+                label: Math.round(range[0]) + " < " + Math.round(range[1]),
+                data: phasedata[1],
+                points: {
+                    fillColor: "#0000FF"
+                },
+                color: "#0000FF"
+            }, {
+                label: Math.round(range[1]) + " < " + Math.round(range[2]),
+                data: phasedata[2],
+                points: {
+                    fillColor: "#FF0000"
+                },
+                color: "#FF0000"
+            }, {
+                label: Math.round(range[2]) + " < " + Math.round(range[3]),
+                data: phasedata[3],
+                points: {
+                    fillColor: "#640000"
+                },
+                color: "#640000"
+            }];
+
+            currentdataset = finaldata;
+            var xoptions = {
+                min: 0,
+                max: 360,
+                tickSize: 90,
+                axisLabel: ConvertKeyLanguage("$UNIT_DEGS"),
+                axisLabelUseCanvas: true
+            };
+            var yoptions = {
+                min: 0,
+                max: 60,
+                axisLabel: ConvertKeyLanguage("$UNIT_DB"),
+                axisLabelUseCanvas: true
+            };
+
+            drawPhasegraph(finaldata, xoptions, yoptions);
+        };
+
+        function drawPhasegraph(series, xoptions, yoptions) {
+            var plot = $.plot($("#phase"), series, {
+                xaxis: xoptions,
+                yaxis: yoptions,
+                selection: {
+                    mode: "xy"
+                },
+                grid: {
+                    hoverable: true
+                },
+                series: {
+                    points: {
+                        radius: 1,
+                        show: true,
+                        fill: true,
+                    },
+                }
+            });
+
+            return plot;
+        };
+    </script>
+
+    <script>
+        var div = document.getElementById('$HISTOGRAM');
+
+        div.addEventListener('click', function(event) {
+            document.getElementById('wavecontrol').style.display = "none";
+            currentgraph = "histogram";
+        });
+
+        div.addEventListener('click', function(event) {
+            var options = {
+                yaxis: {
+                    ticks: tickarray,
+                    transform: function(v) {
+                        return Math.log(v + 1);
+                    },
+                    axisLabel: ConvertKeyLanguage("$UNIT_COUNT"),
+                    axisLabelUseCanvas: true
+                },
+                xaxis: {
+                    axisLabel: ConvertKeyLanguage("$UNIT_DB"),
+                    min: 0,
+                    max: 60,
+                    axisLabelUseCanvas: true
+                },
+                grid: {
+                    hoverable: true,
+                    clickable: true,
+                    color: "#999"
+                }
+            };
+
+            drawHistogramgraph(currentgraphdata[1], options);
+        });
+
+        var tickarray = [];
+
+        function getHistogramData() {
+            var raw = events.data;
+            var histogramdata = [];
+            var logheight = 0;
+            var values = [];
+            for (i = 0; i < raw.length; i++) {
+                var currentval = Math.round(raw[i][0]);
+                var count = 0;
+                if (values.length == 0) {
+                    values.push([currentval, 0]);
+                }
+                graphvalueslength = values.length;
+                matchfound = false;
+                for (j = 0; j < graphvalueslength; j++) {
+                    if (currentval == values[j][0]) {
+                        values[j][1] = values[j][1] + 1;
+                        count = values[j][1];
+                        matchfound = true;
+                        break;
+                    }
+                }
+                if (matchfound == false) {
+                    values.push([currentval, 1]);
+                    count = 1;
+                }
+                if (count > logheight) {
+                    logheight = count;
+                }
+            }
+            var thresholdcolours = ['#FF0000', '#FFA500', '#008000'];
+            for (var p = 0; p < values.length; p++) {
+                var colour = thresholdcolours[ThresholdCalc(values[p][0], survey_metadata.Instrument["TEV Thresholds"]["Amber"], survey_metadata.Instrument["TEV Thresholds"]["Red"])];
+                var data = {};
+                data['data'] = [values[p]];
+                data['color'] = '#000000';
+                data['bars'] = {
+                    show: true,
+                    fill: true,
+                    lineWidth: 1,
+                    order: 1,
+                    fillColor: colour
+                };
+                histogramdata.push(data);
+            }
+
+            if (logheight < 10) {
+                tickarray = [1, 10];
+            } else if (logheight < 100) {
+                tickarray = [1, 10, 100];
+            } else if (logheight < 1000) {
+                tickarray = [1, 10, 100, 1000];
+            } else if (logheight < 10000) {
+                tickarray = [1, 10, 100, 1000, 10000];
+            } else if (logheight < 100000) {
+                tickarray = [1, 10, 100, 1000, 10000, 100000];
+            } else if (logheight < 1000000) {
+                tickarray = [1, 10, 100, 1000, 10000, 100000, 1000000];
+            }
+
+            currentgraphdata[1] = histogramdata;
+        };
+
+        function drawHistogramgraph(series, options) {
+            var plot = $.plot($("#phase"), series, options);
+
+            return plot;
+        };
+
+        function ThresholdCalc(value, amber, red) {
+            var outcome = 2;
+            if (value < red && value >= amber) {
+                outcome = 1;
+            } else if (value >= red) {
+                outcome = 0;
+            }
+            return outcome;
+        }
+    </script>
+
+    <script src="waveforms.js"></script>
+    <script>
+        var isSingle;
+        var wavedataset;
+        var xoptions;
+        var yoptions;
+        var div = document.getElementById('$WAVEFORMS');
+
+        div.addEventListener('click', function(event) {
+            document.getElementById('wavecontrol').style.display = "table-row";
+            isSingle = true;
+            currentgraph = "waveform";
+            drawWaveformgraph([wavedataset[document.getElementById('waveformnum').value - 1]], xoptions, yoptions);
+        });
+
+        var div2 = document.getElementById('waveformsbutton');
+
+        div2.addEventListener('click', function(event) {
+            isSingle = false;
+            drawWaveformgraph(wavedataset, xoptions, yoptions);
+        });
+
+        $(document).ready(function() {
+            var raw = waveforms.data;
+            var count = 0;
+            for (i = 0; i < raw.length; i++) {
+                count++;
+            }
+            count + 1;
+            $("#waveformnum").attr({
+                "max": count,
+                "min": 1
+            });
+        });
+
+        function waveformChanged() {
+            isSingle = true;
+            drawWaveformgraph([wavedataset[document.getElementById('waveformnum').value - 1]], xoptions, yoptions);
+        }
+
+        function GetWaveform(isallWaveform) {
+            var waveformnum;
+            var datalength;
+            var raw = waveforms.data;
+            if (isallWaveform) {
+                waveformnum = 0;
+                datalength = raw.length;
+            } else {
+                waveformnum = document.getElementById('waveformnum').value - 1;
+                datalength = waveformnum + 1;
+            }
+            var wavedata = [];
+            for (i = waveformnum; i < datalength; i++) {
+                var singlewaveform = [];
+                var count = -2.56;
+                for (j = 0; j < raw[i].length; j++) {
+                    var singlepoint = [count, ((waveform_scale * raw[i][j]) + waveform_offset)];
+                    singlewaveform[j] = singlepoint;
+                    count = count + 0.005;
+                }
+                wavedata.push(singlewaveform);
+            }
+
+            wavedataset = wavedata;
+            currentgraphdata[2] = wavedata;
+            xoptions = {
+                axisLabel: ConvertKeyLanguage("$UNIT_US"),
+                axisLabelUseCanvas: true
+            };
+            yoptions = {
+                axisLabel: ConvertKeyLanguage("$UNIT_DB"),
+                axisLabelUseCanvas: true
+            };
+
+        };
+
+        function drawWaveformgraph(series, xoptions, yoptions) {
+            var plot = $.plot("#phase",
+                series, {
+                    selection: {
+                        mode: "xy"
+                    },
+                    grid: {
+                        hoverable: true
+                    },
+                    xaxis: xoptions,
+                    yaxis: yoptions
+                }
+            );
+
+            return plot;
+        };
+    </script>
+
+    <style>
+        #survey-name {
+            text-align: center;
+        }
+        
+        .nav-rtl {
+            padding-left: 40px;
+            padding-right: 0px;
+        }
+        
+        .nav-rtl li {
+            float: right;
+        }
+        
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            opacity: 1;
+        }
+        
+        .panel-heading {
+            padding: 3px 10px;
+        }
+        
+        .panel-body {
+            padding: 5px;
+        }
+        
+        .panel {
+            margin-bottom: 5px;
+        }
+        
+        .table {
+            margin-bottom: 0px !important;
+        }
+        
+        .panel-info>.panel-heading {
+            background-image: linear-gradient(to bottom, #337ab7 0, #265a88 100%);
+        }
+        
+        .panel-info>.panel-heading {
+            color: white;
+        }
+    </style>
+
+</body>
+</html>

@@ -1,0 +1,244 @@
+<html>
+    <header>
+        
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    
+   
+    <link rel="stylesheet" type="text/css" href="scripts/bootstrap-3.3.6-dist/css/bootstrap.min.css"/>	
+    <link rel="stylesheet" href="scripts/bootstrap-3.3.6-dist/css/bootstrap-theme.min.css">
+    
+    <script src="scripts/jquery-1.11.3/jquery.min.js"></script>
+    <script src="scripts/bootstrap-3.3.6-dist/js/bootstrap.min.js"></script>
+    <script src="language.js"></script>
+     
+     <script src="../survey_metadata.js"></script>
+    <div class="container-fluid" style="width:100%; height:auto; text-align:center">     
+    <h2 style="width:12%; float:left; position:relative;" align="left"><img class="image-responsive" src="icon/EA 200px high.jpg" style="max-width:50%;max-height:50%" ></h2>
+    <h2 style="width:15%; float:right; position:relative;"align="right"><img class="image-responsive" src="icon/Plus2 Logo 200px high.jpg" style="max-width:50%;max-height:50%"></h2>
+    <h1 style="color:#ADBCE6; display:inline-block; margin:1%; font-weight:bold" id="instrument-detail"></h1>
+    </div>
+    </header>
+    <body>
+        <div id="content" class="container-fluid;">
+            <div id="survey-container" class="survey col-md-3 col-sm-4 col-lg-3">
+            </div>
+        </div>
+        <div class="navbar-fixed-bottom" style="text-align:right;font-style:italic;">
+        <div class="dropup" style="text-align:right;">
+            <button class="btn btn-default dropdown-toggle" type="button" id="menu1" data-toggle="dropdown">
+            <span class="caret"></span></button>
+            <ul id="dropdownitems" class="dropdown-menu" role="menu" aria-labelledby="menu1" style="left:auto;right:0;">
+            </ul>
+        </div>
+        </div>
+    </body>
+
+    <script type="text/javascript">
+        var languagekeys = labels;
+        var header = document.getElementById("instrument-detail");
+
+        var value = survey_metadata["Survey Name"];
+
+        var year = value.substring(0, 4);
+        var month = value.substring(4, 6);
+        var day = value.substring(6, 8);
+        var hour = value.substring(9, 11);
+        var minute = value.substring(11, 13);
+        var second = value.substring(13, 15);
+        
+        
+        var dropdowndiv = document.getElementById("dropdownitems");
+        for (var languageset = 0; languageset < languages.Languages.length; languageset++){
+            var li = document.createElement('LI');
+            var a = document.createElement('a');
+            li.setAttribute("role", "presentation");
+            li.setAttribute("id", languageset);
+            li.setAttribute("onclick", "ChangeLanguage(this.id)");
+            a.setAttribute("role", "menuitem");
+            a.setAttribute("tabindex", "-1");
+            a.innerHTML=languages.Languages[languageset];
+            dropdowndiv.appendChild(li);
+            li.appendChild(a);
+        }
+
+        var cookie = document.cookie;
+        var languageloc;
+        if (cookie){
+            languageloc = languages.Languages.indexOf(cookie);
+        }
+        else {
+            languageloc = 0;
+        }
+
+        function GenerateHeader(){
+            var headercontent = ConvertKeyLanguage("$INSTRUMENT");
+            header.textContent = headercontent  + " " + year + "/" + month + "/" + day + "  " + hour + ":" + minute + ":" + second;
+            document.title = headercontent + " " + year + "/" + month + "/" + day + "  " + hour + ":" + minute + ":" + second;
+        }
+
+        document.getElementById("menu1").innerHTML= languages.Languages[languageloc];
+
+        GenerateHeader();
+        GenerateAndBindMetadata();
+
+        function ChangeLanguage(languageid){
+			
+			localStorage.setItem('languageid', languageid);
+			
+            languageloc = languageid;
+            var metalayout = document.getElementById("survey-container");
+            while (metalayout.firstChild) {
+                metalayout.removeChild(metalayout.firstChild);
+            }
+            GenerateAndBindMetadata();
+            GenerateHeader();
+            
+        }
+
+        function ConvertKeyLanguage (key){
+            for (i=0; i<languagekeys.length; i++){
+                if (languagekeys[i][key]){ 
+                    var data = languagekeys[i][key][languageloc];
+                    if (data != undefined){
+                        return data;
+                    } else {return key.replace("$","");}
+                }
+            }
+            return key.replace("$","");
+        }
+
+        function  GenerateAndBindMetadata(){
+                 
+                 var fieldValues = survey_metadata.Instrument;
+                 var surveyContainer = null;
+                 var group = null;
+
+                group = "$INSTRUMENT";
+            
+                surveyContainer = document.getElementById("survey-container");
+                var panelInfo = document.createElement('div');
+                surveyContainer.appendChild(panelInfo);
+                panelInfo.id = "survey-" + group;
+                panelInfo.className="panel panel-info";
+                
+                var headerContainer = document.getElementById(panelInfo.id);
+                var panelHeader = document.createElement('div');    
+                headerContainer.appendChild(panelHeader);
+                panelHeader.id = panelInfo.id + "-header";
+                panelHeader.className = "panel-heading";
+                panelHeader.textContent = ConvertKeyLanguage(group);
+                
+                var bodyContainer = document.getElementById(panelInfo.id);
+                var panelBody = document.createElement('div');    
+                bodyContainer.appendChild(panelBody);
+                panelBody.id = panelInfo.id + "-body";
+                panelBody.className = "panel-body";
+                
+
+                var container = document.getElementById(panelBody.id);
+                var table = document.createElement('TABLE');    
+                container.appendChild(table);
+                table.id = panelInfo.id + "-table";
+                table.className='table table-hover';
+                table.setAttribute("style", "font-size:90%;");
+                
+                var tableBody = document.createElement('TBODY');
+                table.appendChild(tableBody);
+                var instrumentdatafield = ["$CAL_DUE", "$DNA", "$FIRMWARE_VERSION", "$HARDWARE_VERSION", "$SELF_CHECK", "$SERIAL", "$ULTRA_COLOUR_SCHEME"]
+                for(d = 0; d < instrumentdatafield.length; d++)
+                        {
+                            var tr = null;
+                            var td1 = null;
+                            var td2 = null;
+                            if (fieldValues[instrumentdatafield[d]] == null) { continue; } //check for valid datafield key
+                            var datafield = fieldValues[instrumentdatafield[d]].toString();
+                            if (!datafield.indexOf("includes") >= 0){
+                            var keycheck = datafield.charAt(0);                                 
+                            if (keycheck == "$"){
+                                var dataContent = ConvertKeyLanguage(fieldValues[instrumentdatafield[d]]);
+                            }
+                            else {var dataContent = fieldValues[instrumentdatafield[d]]};
+                            var label = ConvertKeyLanguage(instrumentdatafield[d]);
+
+                            
+                                tr = document.createElement('TR');
+                                tableBody.appendChild(tr);
+                                        
+                                td1 = document.createElement('TD');
+                                tr.appendChild(td1);
+                                td1.style.width = "50%";
+                                td1.textContent = label + ":";
+                                        
+                                        
+                                td2 = document.createElement('TD');
+                                tr.appendChild(td2);
+                                td2.style.width = "50%";
+
+                                //Special formatting for a couple of fields
+                                if (instrumentdatafield[d] == '$SELF_CHECK') {
+                                    var selfCheckResult = Number(dataContent);
+
+                                    if ((selfCheckResult == 0) || (selfCheckResult == 0x8000)) {
+                                        dataContent += ' (✓)';
+                                        td2.style.color = 'Green';
+                                    }
+                                    else {
+                                        dataContent += ' (✗)';
+                                        td2.style.color = 'Red';
+                                    }
+
+                                } else if (instrumentdatafield[d] == '$CAL_DUE') {
+                                    var calDueDate = Date.parse(dataContent);
+                                    var dateString = survey_metadata["Survey Name"];
+                                    var surveyDate = Date.UTC(Number(dateString.substring(0,4)), 
+                                        Number(dateString.substring(4,6))-1, 
+                                        Number(dateString.substring(6,8)));
+
+                                    if (surveyDate < calDueDate) {
+                                        dataContent += ' (✓)';
+                                        td2.style.color = 'Green';
+                                    }
+                                    else {
+                                        dataContent += ' (✗)';
+                                        td2.style.color = 'Red';
+                                    }
+
+                                }
+
+                                td2.textContent = dataContent;
+             
+                            } 
+                        } 
+        }
+        
+        var local_languageid = localStorage.getItem('languageid');
+		if (local_languageid)
+		{
+			ChangeLanguage(local_languageid);
+		}
+
+    </script>
+    <style>
+        .table{
+            margin-bottom: 0px !important;
+        }
+        .panel-heading{
+            padding: 3px 10px;  
+        }  
+        
+        .panel-body{
+            padding:5px;
+        }
+        
+        .panel {
+            margin-bottom: 5px;
+        } 
+        .panel-info>.panel-heading
+        {
+            background-image: linear-gradient(to bottom,#337ab7 0,#265a88 100%);
+            color: white;
+        }
+    </style>

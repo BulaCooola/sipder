@@ -58,11 +58,8 @@ export const listSerialPorts = async () => {
 
     // Update the previous port list
     previousPorts = portPaths;
-
-    // Re-run after a delay
-    setTimeout(checkPorts, 2000); // Check every 2 seconds
   }
 
-  // Start detection
-  checkPorts();
+  // Re-run after a delay
+  setInterval(checkPorts, 2000); // Check every 2 seconds
 };

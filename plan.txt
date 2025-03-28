@@ -1,0 +1,40 @@
+TODO -
+* Find a way to test conditions from the TEV
+    - Background Metal (DB)
+    - Background Metal (PPC)
+    - Background Air (dB)
+    - Background Air (PPC)
+    Temperature (C)
+    Humidity
+
+* Workflow HTML file
+    Survey Metadata Groups
+        - Job
+        - Substation
+        - Switchgear
+        - conditions
+    Assets
+        - Panel Number
+        - Panel Name
+        - measures []
+
+* Make a page that shows the progress of each panel
+* PROGRESS DASHBOARD
+    - Green --> Completed
+    - Blue --> In progress
+    - Yellow --> Skipped
+    - White --> Not visited
+
+* Figure out how long the UTP2 must record to get a good read
+
+* CONNECT THE TEV FROM MICROUSB TO COMPUTER (or wifi) and TYPE OUT 192.168.10.1 on BROWSWER 
+    - This connects directly to the instrument
+
+
+Workflow
+- User must set up the workflow, substation layout, and note all the substation panels FIRST
+- User will have to note a workflow that the Jackal and TEV will follow
+- ???
+- User will input background conditions onto the application
+- Computer will save the conditions into the DB
+- 

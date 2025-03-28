@@ -22,6 +22,11 @@ const NavBar = () => {
                 Emulated Data Stream
               </NavLink>
             </li>
+            <li>
+              <NavLink to="/workflow" className="hover:underline">
+                Workflow
+              </NavLink>
+            </li>
           </ul>
         </nav>
       </header>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Survey media</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="cache-control" content="max-age=0" />
+    <meta http-equiv="cache-control" content="no-cache" />
+    <meta http-equiv="expires" content="0" />
+    <meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT" />
+    <meta http-equiv="pragma" content="no-cache" />
+    <link href="scripts/bootstrap-3.3.6-dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="scripts/jquery-1.11.3/jquery.min.js"></script>
+    <script src="scripts/bootstrap-3.3.6-dist/js/bootstrap.min.js"></script>
+    <script src="scripts/photo-gallery.js"></script>
+    <style>
+      ul {         
+          padding:0 0 0 0;
+          margin:0 0 0 0;
+      }
+      ul li {     
+          list-style:none;
+          margin-bottom:25px;           
+      }
+      ul li img {
+          cursor: pointer;
+      }
+      .modal-body {
+          padding:5px !important;
+      }
+      .modal-content {
+          border-radius:0;
+      }
+      .modal-dialog img {
+          text-align:center;
+          margin:0 auto;
+      }
+    .controls{          
+        width:50px;
+        display:block;
+        font-size:11px;
+        padding-top:8px;
+        font-weight:bold;          
+    }
+    .next {
+        float:right;
+        text-align:right;
+    }
+      /*override modal for demo only*/
+      .modal-dialog {
+          max-width:500px;
+          padding-top: 90px;
+      }
+      @media screen and (min-width: 768px){
+          .modal-dialog {
+              width:500px;
+              padding-top: 90px;
+          }          
+      }
+      @media screen and (max-width:1500px){
+          #ads {
+              display:none;
+          }
+      }
+    </style>
+
+</head>
+<body>
+
+        <div class="container" style="width:100%">
+            <table style="width:98%; margin:1%;">
+                <tr>
+            <td style="width:12%" align="left"><img class="image-responsive" src="icon/EA 200px high.jpg" style="max-width:50%;max-height:50%" ></td>
+            <td style="width:25%" align="center"><h1 id="survey-name" style="color:#ADBCE6"><b>Survey media</b></h1></td>
+            <td style="width:12%" align="right"><img class="image-responsive" src="icon/Plus2 Logo 200px high.jpg" style="max-width:50%;max-height:50%"></td>
+                </tr>
+            </table>
+        </div>
+
+<div class="panel panel-info">
+    
+    <div class="container">
+
+        <div class="row">
+            <select id="assetSelect">
+                <option value="">All</option>
+            </select>
+        </div>
+
+        <div class="row" style="text-align:center; padding:0 0 20px 0; margin-bottom:40px;">
+        </div>
+        
+        <ul class="row" id="image_ul">
+            <!-- e.g.....
+            <li id="img_pop" class="col-lg-2 col-md-2 col-sm-3 col-xs-4">
+                <img class="img-responsive" src="images/photodune-174908-rocking-the-night-away-xs.jpg">
+            </li>
+            -->
+          </ul>             
+    </div> <!-- /container -->
+</div>
+ 
+    <style>
+        .nav-tabs
+        {
+            background-color: #265a88;
+            color: white;
+        }
+        .nav-tabs > li > a {
+            color: white !important;
+            background-color: transparent !important;
+            border: 2px solid transparent !important;
+            border-radius: 0px;
+            margin: 0px 0px 0px 0px;
+        }
+        .nav-tabs > li > a:hover {
+            color: white !important;
+            background-color: #2d6a9f !important;
+            border: 2px solid transparent !important;
+            border-radius: 0px;
+            margin: 0px 0px 0px 0px;
+        }
+        .nav-tabs > li.active > a {
+            color: white !important;
+            background-color: #337ab7 !important;
+            border: 2px solid transparent !important;
+            border-radius: 0px;
+            margin: 0px 0px 0px 0px;
+        }
+        .panel{
+            margin-bottom: 0px;
+        }
+    </style>
+     
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">         
+                <div class="modal-body">                
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+    
+</body>
+
+<script src="../upload/media.js"></script>
+<script type="text/javascript">
+
+    var assets = [];
+    var show_all = true;
+    var sel_asset;
+
+    // get array of assets
+    for (im = 0; im < mediaMetadata.length; im++) {
+        if (-1 == assets.indexOf(mediaMetadata[im].asset))
+        {
+            if (mediaMetadata[im].asset == "Substation") {
+                assets.unshift(mediaMetadata[im].asset);
+            }
+            else {
+
+            assets.push(mediaMetadata[im].asset);
+            }
+        }
+    }
+
+    // build drop down selector
+    for (asset = 0; asset < assets.length; asset++) {
+        var option_html = '<option value="' + assets[asset] + '">' + assets[asset] + '</option>';
+        $('#assetSelect').append(option_html);
+    }
+
+    // Select asset in drop down based on URL
+    var url_string = window.location.href;
+    var url = new URL(url_string);
+    var asset = url.searchParams.get("asset");
+    if (asset != null) {
+        $('#assetSelect').val(asset);
+        sel_asset = asset;
+        show_all = false;
+    }
+
+    // Show selected images
+    setImages();
+
+    $('#assetSelect').change(function() {
+        sel_asset = $('#assetSelect').val();
+        if (sel_asset == "") {
+            show_all = true;    // "All" has a value of ""
+        } else {
+            show_all = false;
+        }
+        setImages();
+    });
+
+    // Set correct images into #image_ul list
+    function setImages() {
+        $('#image_ul').empty();
+
+        for (im = 0; im < mediaMetadata.length; im++) {
+            if ((show_all) || (mediaMetadata[im].asset == sel_asset)) {
+                var is_video = false;   // assume it's an image
+                // Get file extension and convert to upper case for case insensitive comparison
+                var extension = mediaMetadata[im].file.split('.').pop().toUpperCase();
+                
+                if ((extension == "MOV") || 
+                    (extension == "MP4") ||
+                    (extension == "WEBM") ||
+                    (extension == "OGV")) {
+                    is_video = true;
+                }
+
+                var im_html;
+
+                if (is_video) {
+                    im_html = '<li class="col-lg-2 col-md-2 col-sm-3 col-xs-4"><video class="img-responsive" asset="' + mediaMetadata[im].asset + '" comment="' + mediaMetadata[im].comment + '" src="../upload/' + mediaMetadata[im].file + '" is_video=1 autoplay muted loop></video></li>';
+                } else {
+                    im_html = '<li class="col-lg-2 col-md-2 col-sm-3 col-xs-4"><img class="img-responsive" src="../upload/' + mediaMetadata[im].file + '" asset="' + mediaMetadata[im].asset + '" comment="' + mediaMetadata[im].comment + '" is_video=0></li>';
+                }
+                $('#image_ul').append(im_html);
+            }
+        }
+    }
+
+</script>
+
+</html>
