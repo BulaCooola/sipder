@@ -13,6 +13,8 @@ import {
   ArcElement,
 } from "chart.js";
 
+import { saveToExcel } from "../utils/saveToExcel";
+
 // Register Chart.js components
 ChartJS.register(
   CategoryScale,
@@ -25,54 +27,97 @@ ChartJS.register(
   ArcElement
 );
 
-const socket = Client("http://localhost:3000");
+const socket = Client("http://localhost:3000", {
+  reconnection: true,
+  reconnectionAttempts: 5, // Try reconnecting 5 times
+  reconnectionDelay: 2000, // Wait 2s between retries
+});
 
 const SensorData = () => {
+  const [bufferData, setBufferData] = useState([]);
   const [ultraData, setUltraData] = useState([]);
   const [tevData, setTevData] = useState([]);
   const [timestampsUD, setTimestampsUD] = useState([]);
   const [timestampsTEV, setTimestampsTEV] = useState([]);
-  const [isConnected, setIsConnected] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState(null);
 
+  const [recording, setRecording] = useState(false);
+  const [canSave, setCanSave] = useState(false);
+
+  const startRecording = () => {
+    if (!isStreaming) {
+      setIsStreaming(true);
+      socket.emit("start-fake-read");
+      console.log("Started Reading data");
+    }
+
+    setRecording(true);
+    setCanSave(false); // Disable save button when recording starts
+
+    setTimeout(() => {
+      setRecording(false);
+      setCanSave(true); // Enable save button after 10 seconds
+
+      setIsStreaming(false);
+      socket.emit("stop-stream");
+      console.log("Stopped reading data");
+    }, 10000); // 10 seconds
+  };
+
   const startReading = () => {
-    setIsConnected(true);
+    setIsStreaming(true);
     socket.emit("start-fake-read");
     console.log("Started Reading data");
   };
 
   const stopReading = () => {
-    setIsConnected(false);
+    setIsStreaming(false);
     socket.emit("stop-stream");
     console.log("Stopped reading data");
   };
 
+  const handleSave = () => {
+    socket.emit("request-tev-data"); // Ask server for TEV data buffer
+    saveToExcel("tev_data.xlsx", bufferData); // Call the function in frontend
+  };
+
+  const handleFakeSensorData = (data) => {
+    setError(null);
+
+    const currentTime = new Date().toLocaleTimeString();
+
+    if (data.includes("Ultra=")) {
+      const value = parseFloat(data.split("=")[1]);
+      setUltraData((prev) => (prev.length >= 50 ? [...prev.slice(1), value] : [...prev, value]));
+      setTimestampsUD((prev) =>
+        prev.length >= 50 ? [...prev.slice(1), currentTime] : [...prev, currentTime]
+      );
+    }
+
+    if (data.includes("TEV=")) {
+      const value = data.split("=")[1];
+      const cycle = data.split("/")[1];
+      let ppc = cycle / 30;
+      setTevData((prev) => (prev.length >= 10 ? [...prev.slice(1), ppc] : [...prev, ppc]));
+      setTimestampsTEV((prev) =>
+        prev.length >= 10 ? [...prev.slice(1), currentTime] : [...prev, currentTime]
+      );
+    }
+  };
+
   useEffect(() => {
+    socket.connect(); // Connect when component mounts
+
     socket.on("sensor-error", () => {
       setError("No Connection with Sensor");
     });
 
-    socket.on("sensor-data", (data) => {
-      // console.log("Received data: ", data);
-      const currentTime = new Date().toLocaleTimeString();
+    socket.on("sensor-data", handleFakeSensorData);
 
-      if (data.includes("Ultra=")) {
-        const value = parseFloat(data.split("=")[1]);
-        setUltraData((prev) => (prev.length >= 50 ? [...prev.slice(1), value] : [...prev, value]));
-        setTimestampsUD((prev) =>
-          prev.length >= 50 ? [...prev.slice(1), currentTime] : [...prev, currentTime]
-        );
-      }
-
-      if (data.includes("TEV=")) {
-        const value = data.split("=")[1];
-        const cycle = data.split("/")[1];
-        let ppc = cycle / 30;
-        setTevData((prev) => (prev.length >= 10 ? [...prev.slice(1), ppc] : [...prev, ppc]));
-        setTimestampsTEV((prev) =>
-          prev.length >= 10 ? [...prev.slice(1), currentTime] : [...prev, currentTime]
-        );
-      }
+    socket.on("send-tev-data", (buffer) => {
+      console.log("Received TEV Data:", buffer);
+      setBufferData(buffer); // Store the received TEV data
     });
 
     socket.on("disconnect", () => {
@@ -80,9 +125,12 @@ const SensorData = () => {
     });
 
     return () => {
-      socket.off("sensor-data");
-      socket.off("disconnect");
-      socket.off("sensor-error");
+      if (isStreaming) {
+        setIsStreaming(false);
+        socket.emit("stop-stream");
+      }
+      socket.removeAllListeners();
+      socket.disconnect();
     };
   }, []);
 
@@ -237,15 +285,29 @@ const SensorData = () => {
   return (
     <div style={{ width: "80%", margin: "auto", textAlign: "center" }}>
       <h1 className="text-2xl font-bold py-4 px-2">Emulated Sensor Data Visualization</h1>
+
       <button
         onClick={startReading}
-        disabled={isConnected}
+        disabled={isStreaming}
         className="mx-4 px-6 py-3 mb-6 text-lg font-semibold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 transition"
       >
         Start Reading
       </button>
-      <button onClick={stopReading} disabled={!isConnected} className="btn btn-success">
+
+      <button
+        onClick={stopReading}
+        disabled={!isStreaming || recording}
+        className="btn btn-success"
+      >
         Stop Reading
+      </button>
+
+      <button onClick={startRecording} disabled={recording} className="btn">
+        10-sec Record
+      </button>
+
+      <button onClick={handleSave} disabled={!canSave} className="btn">
+        Save
       </button>
 
       {error && <p style={{ color: "red" }}>{error}</p>}

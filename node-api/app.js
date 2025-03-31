@@ -9,7 +9,7 @@ import configRoutes from "./routes/index.js";
 import { SerialPort } from "serialport";
 import { ReadlineParser } from "serialport";
 
-import { listSerialPorts } from "./services/serialService.js";
+import { startSerialConnection, listSerialPorts } from "./services/serialService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,8 +32,11 @@ app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 const connectionStartTime = Date.now();
 let latestData = null; // Buffer for the latest sensor data
 let isReading = false;
-let tevDataBuffer = [];
-let isFirstLine = true;
+let isStreaming = false; // Flag to control data streaming
+export let tevDataBuffer = [];
+
+// Variables for Fake Data
+let fakeDataInterval = null;
 
 let previousPorts = [];
 /**
@@ -77,7 +80,93 @@ const sensorDataListener = (data) => {
   io.emit("start-read", data);
 };
 
-let isStreaming = false; // Flag to control data streaming
+async function startFakeSensor(socket) {
+  let iteration = 0;
+
+  if (fakeDataInterval) {
+    return socket.emit("sensor-error", { error: "Fake Sensor is already running." });
+  }
+
+  console.log(`Starting fake data for: ${socket.id}`);
+  tevDataBuffer = [];
+
+  // Set interval to emit sensor data every 200ms
+  socket.join("fake-data");
+  fakeDataInterval = setInterval(() => {
+    let data;
+    let dataTimestamp;
+
+    // Send different data every 5 iterations
+    if (iteration % 5 == 0 && iteration != 0) {
+      data = `TEV=${(30 + Math.random()).toFixed(0)}/${(79 + Math.random() * 10).toFixed(0)}`;
+      dataTimestamp = Date.now();
+      iteration = 0;
+    } else {
+      data = `Ultra=${Math.floor(Math.random() * 100)}`;
+      dataTimestamp = Date.now();
+      iteration = iteration + 1;
+    }
+
+    // Store the emitted data in the shared buffer
+    // If the buffer exceeds 150 items, remove the oldest one
+    tevDataBuffer.push({ data: data, timestamp: dataTimestamp });
+    if (tevDataBuffer.length > 75) {
+      tevDataBuffer.shift(); // Removes the first item (oldest)
+    }
+
+    // socket.emit("sensor-data", data);
+    io.to("fake-data").emit("sensor-data", data);
+    // messageCount++;
+
+    console.log(`Sent:`, data);
+  }, 200);
+}
+
+// ✅ Helper Function for Real Sensor Data
+async function startRealSensor(socket) {
+  if (isReading || previousPorts.length === 0) {
+    return socket.emit("sensor-error", { error: "No available ports or already reading." });
+  }
+
+  try {
+    const { port, parser } = await startSerialConnection(socket, previousPorts[0]);
+    isReading = true;
+    socket.join("real-data");
+
+    let timeout;
+    const resetTimeout = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        console.error("⚠️ No data received for 5 seconds! Disconnecting...");
+        io.to("real-data").emit("sensor-error", "No data received for 5 seconds");
+        isReading = false;
+        port.close();
+      }, 5000);
+    };
+
+    // Send data
+    parser.on("data", (data) => {
+      const startTime = Date.now(); // Get start time of data retrieval
+      resetTimeout(); // reset timeout
+
+      // Send the data to 'real-data' room
+      io.to("real-data").emit("sensor-data", data.trim());
+
+      // Log Processing Time
+      const processingTime = Date.now() - startTime;
+      console.log(`Processing time: ${processingTime}ms`);
+    });
+
+    parser.on("error", (err) => {
+      console.error("⚠️ Serial port error:", err.message);
+      io.to("real-data").emit("sensor-error", err.message);
+      isReading = false;
+      port.close();
+    });
+  } catch (err) {
+    console.error("Serial connection failed:", err.message);
+  }
+}
 
 // ! CODE FOR TESTING PERFORMANCE
 // setInterval(() => {
@@ -91,9 +180,7 @@ let isStreaming = false; // Flag to control data streaming
 //   messageCount = 0;
 // }, 1000); // Reset every secon
 
-//* Connection with frontend
-let intervalId;
-let iteration = 0;
+// ✅ Socket.io Connections
 io.on("connection", (socket) => {
   socket.emit("connection-ack", { message: "Connected to server" });
 
@@ -101,110 +188,118 @@ io.on("connection", (socket) => {
   console.log(`Connection latency for ${socket.id}: ${latency}ms`);
 
   console.log("Front End Client connected:", socket.id);
-  let parser;
   let port;
   let isPort = false;
 
-  socket.on("start-fake-read", () => {
-    console.log(`Starting fake data for: ${socket.id}`);
-    socket.join("fake-data");
+  socket.on("start-fake-read", () => startFakeSensor(socket));
+  socket.on("start-read", () => startRealSensor(socket));
+  // Listener to start data streaming (PREVIOUS BELOW)
+  // socket.on("start-read", () => {
+  //   socket.join("real-data");
+  //   console.log("Read command received");
 
-    if (intervalId) {
-      return socket.emit("sensor-error", { error: "Sensor is already running." });
+  //   // Connect and collect the streamed data
+  //   if (previousPorts.length > 0) {
+  //     { port, parser } = await startSerialConnection(socket, previousPorts[0])
+
+  //     port = new SerialPort({ path: previousPorts[0], baudRate: 115200 }, (err) => {
+  //       if (err) {
+  //         console.error("Error opening port:", err.message);
+  //         isReading = false;
+  //         socket.emit("sensor-error", err);
+  //       } else {
+  //         console.log("Port opened successfully!");
+
+  //         // ! Needs to check if there is data coming out, if there isn't disconnect
+  //         isReading = true;
+  //         isPort = true;
+  //         parser = port.pipe(new ReadlineParser({ delimiter: "\n" }));
+
+  //         let timeout;
+  //         const TIMEOUT_DURATION = 5000;
+
+  //         const resetTimeout = () => {
+  //           clearTimeout(timeout);
+  //           timeout = setTimeout(() => {
+  //             console.error("⚠️ No data received for 5 seconds! Disconnecting...");
+  //             io.to("real-data").emit("sensor-error", "No data received for 5 seconds");
+  //             isReading = false; // no longer reading
+  //             port.close(); // Close the serial port
+  //           }, TIMEOUT_DURATION);
+  //         };
+
+  //         // Start timeout in case no data comes at all
+  //         resetTimeout();
+
+  //         parser.on("data", (data) => {
+  //           const startTime = Date.now();
+
+  //           if (isFirstLine) {
+  //             console.log(`Ignoring first line: ${data}`);
+  //             isFirstLine = false; // Skip the first line
+  //             return;
+  //           }
+
+  //           resetTimeout();
+
+  //           io.to("real-data").emit("sensor-data", data.toString().trim());
+  //           // messageCount++;
+  //           const processingTime = Date.now() - startTime;
+  //           console.log(`Processing time: ${processingTime}ms`);
+  //         });
+
+  //         // Handle port errors properly
+  //         parser.on("error", (err) => {
+  //           console.error("⚠️ Serial port error:", err.message);
+  //           io.to("real-data").emit("sensor-error", err.message);
+  //           clearTimeout(timeout);
+  //           isReading = false;
+  //           port.close();
+  //         });
+  //       }
+  //     });
+  //   }
+  // });
+
+  // Start 10-second recording
+  socket.on("start-record", () => {
+    if (!isReading) {
+      // ! IMPLEMENT THE SOCKET ERRORS
+      console.error(
+        "Sensor must be connected and reading in order to record. (IMPLEMENT SOCKET ERRORS)"
+      );
     }
 
-    // Set interval to emit sensor data every 200ms
-    intervalId = setInterval(() => {
-      let data;
+    if (isRecording) {
+      return socket.emit("recording-status", { message: "Recording is already in progress!" });
+    } else {
+      console.log("Recording started for 10 seconds");
+      recordedData = [];
+      isRecording = true;
 
-      // Send different data every 5 iterations
-      if (iteration % 5 == 0 && iteration != 0) {
-        data = `TEV=${(30 + Math.random()).toFixed(0)}/${(79 + Math.random() * 10).toFixed(0)}`;
-        iteration = 0;
-      } else {
-        data = `Ultra=${Math.floor(Math.random() * 100)}`;
-        iteration = iteration + 1;
-      }
-
-      // Store the emitted data in the shared buffer
-      tevDataBuffer.push(data);
-
-      // If the buffer exceeds 150 items, remove the oldest one
-      if (tevDataBuffer.length > 150) {
-        tevDataBuffer.shift(); // Removes the first item (oldest)
-      }
-
-      // emit data to frontend
-      // socket.emit("sensor-data", data);
-      io.to("fake-data").emit("sensor-data", data);
-      // messageCount++;
-
-      console.log(`Sent:`, data);
-    }, 200);
+      recordingTimer = setTimeout(() => {
+        isRecording = false;
+        console.log("⏹️ Recording stopped. Sending data...");
+        socket.emit("recorded-data", recordedData); // Send recorded data to frontend
+      }, 10000); // 10 seconds
+    }
   });
 
-  // Listener to start data streaming
-  socket.on("start-read", () => {
-    socket.join("real-data");
-    console.log("Read command received");
+  // Requesting to save data
+  socket.on("request-tev-data", () => {
+    socket.emit("send-tev-data", tevDataBuffer);
+  });
 
-    // Connect and collect the streamed data
-    if (previousPorts.length > 0) {
-      port = new SerialPort({ path: previousPorts[0], baudRate: 115200 }, (err) => {
-        if (err) {
-          console.error("Error opening port:", err.message);
-          socket.emit("sensor-error", err);
-        } else {
-          console.log("Port opened successfully!");
-
-          // ! Needs to check if there is data coming out, if there isn't disconnect
-
-          isPort = true;
-          parser = port.pipe(new ReadlineParser({ delimiter: "\n" }));
-
-          let timeout;
-          const TIMEOUT_DURATION = 5000;
-
-          const resetTimeout = () => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => {
-              console.error("⚠️ No data received for 5 seconds! Disconnecting...");
-              io.to("real-data").emit("sensor-error", "No data received for 5 seconds");
-              port.close(); // Close the serial port
-            }, TIMEOUT_DURATION);
-          };
-
-          // Start timeout in case no data comes at all
-          resetTimeout();
-
-          parser.on("data", (data) => {
-            const startTime = Date.now();
-
-            if (isFirstLine) {
-              console.log(`Ignoring first line: ${data}`);
-              isFirstLine = false; // Skip the first line
-              return;
-            }
-
-            resetTimeout();
-
-            io.to("real-data").emit("sensor-data", data.toString().trim());
-            // messageCount++;
-            const processingTime = Date.now() - startTime;
-            console.log(`Processing time: ${processingTime}ms`);
-          });
-
-          // Handle port errors properly
-          parser.on("error", (err) => {
-            console.error("⚠️ Serial port error:", err.message);
-            io.to("real-data").emit("sensor-error", err.message);
-            clearTimeout(timeout);
-            port.close();
-          });
-        }
-      });
+  // Manually Stop 10-second recording
+  socket.on("stop-record", () => {
+    if (!isRecording) {
+      return socket.emit("recording-status", { message: "No active recording to stop!" });
+    } else {
+      clearTimeout(recordingTimer);
+      isRecording = false;
+      console.log("Recording manually stopped. Sending data");
+      socket.emit("recorded-data", recordedData);
     }
-    s;
   });
 
   // Listener to stop data streaming
@@ -218,9 +313,10 @@ io.on("connection", (socket) => {
       isPort = false;
     }
     // Fake Data
-    if (intervalId) {
-      clearInterval(intervalId);
-      intervalId = null;
+    if (fakeDataInterval) {
+      clearInterval(fakeDataInterval);
+      fakeDataInterval = null;
+      console.log(tevDataBuffer);
     }
 
     console.log("Stop streaming command received for:", socket.id);

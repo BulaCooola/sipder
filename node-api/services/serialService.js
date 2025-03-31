@@ -2,24 +2,20 @@ import { SerialPort } from "serialport";
 import { ReadlineParser } from "serialport";
 import { config } from "./config.js";
 
-let port;
 let isFirstLine = true;
 
-export const startSerialPort = (callback) => {
-  port = new SerialPort({ path: config.SERIAL_PORT, baudRate: config.BAUD_RATE }, (err) => {
-    if (err) return console.error("Error opening port:", err.message);
-    console.log("Serial port opened successfully!");
-  });
-
-  const parser = port.pipe(new ReadlineParser({ delimiter: "\n" }));
-  parser.on("data", (data) => {
-    if (isFirstLine) {
-      console.log(`Ignoring first line: ${data}`);
-      isFirstLine = false;
-      return;
+export const startSerialConnection = async (socket, portPath) => {
+  const port = new SerialPort({ path: portPath, baudRate: config.BAUD_RATE }, (err) => {
+    if (err) {
+      socket.emit("sensor-error", err.message);
+      return console.error("Error opening port:", err.message);
     }
-    console.log(data.trim());
-    callback(data.trim());
+    console.log("Serial port opened successfully!");
+
+    // ! Needs to check if there is data coming out, if there isn't disconnect
+    const parser = port.pipe(new ReadlineParser({ delimiter: "\n" }));
+
+    return { port, parser };
   });
 };
 
