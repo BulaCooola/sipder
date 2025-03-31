@@ -19,7 +19,7 @@ function App() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen dark:bg-neutral-800 p-6">
-      <h1 className="text-4xl font-bold text-stone-50 underline mb-6">Real-Time Sensor Data</h1>
+      <h1 className="text-4xl font-bold text-stone-50 underline mb-6">SIPDER Data Viz</h1>
       <NavBar />
       <Routes location={location} key={location.pathname}>
         <Route path="" element={<HomePage />} />

@@ -14,13 +14,14 @@ export async function saveToExcel(filename = "fake_data.xlsx", fakeDataBuffer = 
   // Define columns for each sheet
   ultraSheet.columns = [
     { header: "Timestamp", key: "timestamp", width: 20 },
-    { header: "Value", key: "value", width: 10 },
+    { header: "dBμV", key: "dBμV", width: 10 },
   ];
 
   tevSheet.columns = [
     { header: "Timestamp", key: "timestamp", width: 20 },
     { header: "Value", key: "value", width: 10 },
-    { header: "PPC", key: "Value", width: 10 },
+    { header: "dB", key: "dB", width: 10 },
+    { header: "PPC", key: "ppc", width: 10 },
   ];
 
   // Process data and add to the correct sheet
@@ -31,12 +32,19 @@ export async function saveToExcel(filename = "fake_data.xlsx", fakeDataBuffer = 
     if (data.startsWith("Ultra=")) {
       ultraSheet.addRow({
         timestamp: formattedTimestamp,
-        value: parseInt(data.split("=")[1], 10),
+        dBμV: parseInt(data.split("=")[1], 10),
       });
     } else if (data.startsWith("TEV=")) {
+      let value = data.split("=")[1];
+      let dB = value.split("/")[0];
+      let denom = value.split("/")[1];
+      let ppc = denom / 30;
+
       tevSheet.addRow({
         timestamp: formattedTimestamp,
-        value: data.split("=")[1],
+        value: value,
+        dB: dB,
+        ppc: ppc,
       }); // Keep TEV in original format
     }
   });

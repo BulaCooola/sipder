@@ -5,7 +5,7 @@ import { config } from "./config.js";
 let isFirstLine = true;
 
 export const startSerialConnection = async (socket, portPath) => {
-  const port = new SerialPort({ path: portPath, baudRate: config.BAUD_RATE }, (err) => {
+  let port = new SerialPort({ path: portPath, baudRate: config.BAUD_RATE }, (err) => {
     if (err) {
       socket.emit("sensor-error", err.message);
       return console.error("Error opening port:", err.message);

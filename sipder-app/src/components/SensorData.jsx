@@ -13,6 +13,7 @@ import {
   Legend,
   ArcElement,
 } from "chart.js";
+import { saveToExcel } from "../utils/saveToExcel";
 
 // Register Chart.js components
 ChartJS.register(
@@ -31,7 +32,8 @@ import * as d3 from "d3";
 const socket = Client("http://localhost:3000");
 
 const SensorData = () => {
-  const [data, setData] = useState([]);
+  const [bufferData, setBufferData] = useState([]);
+
   const [ultraData, setUltraData] = useState([]);
   const [tevData, setTevData] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -39,6 +41,29 @@ const SensorData = () => {
   const [timestampsTEV, setTimestampsTEV] = useState([]);
   const [error, setError] = useState(null);
   const svgRef = useRef(null);
+
+  const [recording, setRecording] = useState(false);
+  const [canSave, setCanSave] = useState(false);
+
+  const startRecording = () => {
+    if (!isConnected) {
+      setIsConnected(true);
+      socket.emit("start-read");
+      console.log("Started Reading data");
+    }
+
+    setRecording(true);
+    setCanSave(false); // Disable save button when recording starts
+
+    setTimeout(() => {
+      setRecording(false);
+      setCanSave(true); // Enable save button after 10 seconds
+
+      setIsConnected(false);
+      socket.emit("stop-stream");
+      console.log("Stopped reading data");
+    }, 10000); // 10 seconds
+  };
 
   const startReading = () => {
     setIsConnected(true);
@@ -48,54 +73,65 @@ const SensorData = () => {
 
   const stopReading = () => {
     setIsConnected(false);
+    setError(null);
     socket.emit("stop-stream");
     console.log("Stopped reading data");
   };
 
+  const handleSave = () => {
+    socket.emit("request-tev-data"); // Ask server for TEV data buffer
+    saveToExcel("tev_data.xlsx", bufferData); // Call the function in frontend
+  };
+
+  const handleSensorData = (data) => {
+    const currentTime = new Date().toLocaleTimeString();
+    setError(null);
+
+    if (data.includes("Ultra=")) {
+      data = data.split("=")[1];
+      setUltraData((prevData) => {
+        if (prevData.length >= 50) {
+          prevData.shift(); // Keep the buffer at 50 entries
+        }
+        return [...prevData, data];
+      });
+      setTimestampsUD((prev) =>
+        prev.length >= 50 ? [...prev.slice(1), currentTime] : [...prev, currentTime]
+      );
+    }
+    if (data.includes("TEV=")) {
+      data = data.split("=")[1];
+      data = data.split("/")[1];
+      let ppc = data / 30;
+      setTevData((prevData) => {
+        if (prevData.length >= 10) {
+          prevData.shift(); // Keep the buffer at 10 entries
+        }
+        return [...prevData, ppc];
+      });
+      setTimestampsTEV((prev) =>
+        prev.length >= 10 ? [...prev.slice(1), currentTime] : [...prev, currentTime]
+      );
+    }
+  };
+
   useEffect(() => {
+    socket.connect();
+
+    socket.on("real-data", (data) => {
+      console.log("Received real sensor data:", data);
+      setRealData(data); // Update state with new data
+    });
+
     socket.on("sensor-error", (data) => {
       setError("No Connection with Sensor");
     });
 
-    socket.on("sensor-data", (data) => {
-      const currentTime = new Date().toLocaleTimeString();
-
-      // console.log("Received data: ", data);
-      setData((prevData) => {
-        if (prevData.length >= 50) {
-          prevData.shift(); // Keep the buffer at 30 entries
-        }
-        return [...prevData, data];
-      });
-
-      if (data.includes("Ultra=")) {
-        data = data.split("=")[1];
-        setUltraData((prevData) => {
-          if (prevData.length >= 50) {
-            prevData.shift(); // Keep the buffer at 50 entries
-          }
-          return [...prevData, data];
-        });
-        setTimestampsUD((prev) =>
-          prev.length >= 50 ? [...prev.slice(1), currentTime] : [...prev, currentTime]
-        );
-      }
-      if (data.includes("TEV=")) {
-        data = data.split("=")[1];
-        data = data.split("/")[1];
-        console.log(data);
-        let ppc = data / 30;
-        setTevData((prevData) => {
-          if (prevData.length >= 10) {
-            prevData.shift(); // Keep the buffer at 10 entries
-          }
-          return [...prevData, ppc];
-        });
-        setTimestampsTEV((prev) =>
-          prev.length >= 10 ? [...prev.slice(1), currentTime] : [...prev, currentTime]
-        );
-      }
+    socket.on("send-tev-data", (buffer) => {
+      setBufferData(buffer); // Store the received TEV data
     });
+
+    socket.on("sensor-data", handleSensorData);
 
     socket.on("disconnect", () => {
       setError("Disconnected from server");
@@ -105,6 +141,7 @@ const SensorData = () => {
       socket.off("sensor-data");
       socket.off("disconnect");
       socket.off("sensor-error");
+      socket.disconnect();
     };
   }, []);
 
@@ -185,12 +222,23 @@ const SensorData = () => {
   return (
     <div style={{ width: "80%", margin: "auto", textAlign: "center" }}>
       <h1>Sensor Data</h1>
+
       <button onClick={startReading} disabled={isConnected} className="btn">
         Start Reading
       </button>
+
       <button onClick={stopReading} disabled={!isConnected} className="btn">
         Stop Reading
       </button>
+
+      <button onClick={startRecording} disabled={recording} className="btn">
+        10-sec Record
+      </button>
+
+      <button onClick={handleSave} disabled={!canSave} className="btn">
+        Save
+      </button>
+
       <div>
         <h2>Real-Time Sensor Data</h2>
         <svg ref={svgRef}></svg>

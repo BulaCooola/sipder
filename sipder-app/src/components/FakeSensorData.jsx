@@ -72,6 +72,7 @@ const SensorData = () => {
   };
 
   const stopReading = () => {
+    setError(null);
     setIsStreaming(false);
     socket.emit("stop-stream");
     console.log("Stopped reading data");
