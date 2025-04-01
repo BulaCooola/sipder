@@ -46,6 +46,8 @@ const SensorData = () => {
   const [canSave, setCanSave] = useState(false);
 
   const startRecording = () => {
+    const startTime = new Date();
+
     if (!isConnected) {
       setIsConnected(true);
       socket.emit("start-read");
@@ -62,6 +64,8 @@ const SensorData = () => {
       setIsConnected(false);
       socket.emit("stop-stream");
       console.log("Stopped reading data");
+      const totalTime = new Date() - startTime - 10000;
+      console.log(totalTime);
     }, 10000); // 10 seconds
   };
 
@@ -124,7 +128,7 @@ const SensorData = () => {
     });
 
     socket.on("sensor-error", (data) => {
-      setError("No Connection with Sensor");
+      setError(data);
     });
 
     socket.on("send-tev-data", (buffer) => {
