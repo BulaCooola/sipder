@@ -284,8 +284,10 @@ const SensorData = () => {
   //! ADJUST TEV READING SUCH THAT IT GRAPHS EVERY 5 TICKS
 
   return (
-    <div style={{ width: "80%", margin: "auto", textAlign: "center" }}>
-      <h1 className="text-2xl font-bold py-4 px-2">Emulated Sensor Data Visualization</h1>
+    <div className="bg-white" style={{ width: "80%", margin: "auto", textAlign: "center" }}>
+      <h1 className="text-2xl font-bold text-black py-4 px-2">
+        Emulated Sensor Data Visualization
+      </h1>
 
       <button
         onClick={startReading}

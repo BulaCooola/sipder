@@ -224,8 +224,8 @@ const SensorData = () => {
   };
 
   return (
-    <div style={{ width: "80%", margin: "auto", textAlign: "center" }}>
-      <h1>Sensor Data</h1>
+    <div className="bg-white" style={{ width: "80%", margin: "auto", textAlign: "center" }}>
+      <h1 className="text-black">Sensor Data</h1>
 
       <button onClick={startReading} disabled={isConnected} className="btn">
         Start Reading
@@ -249,7 +249,7 @@ const SensorData = () => {
       </div>
       <div>
         {error && <p style={{ color: "red" }}>{error}</p>}
-        <h2>Latest Ultra Sound Sensor Data:</h2>
+        <h2 className="text-black">Latest Ultra Sound Sensor Data:</h2>
         {/* <ul>
           {ultraData.map((data, index) => (
             <li key={index}>{JSON.stringify(data)}</li>
@@ -264,6 +264,7 @@ const SensorData = () => {
         <div style={{ height: "400px", marginTop: "20px" }}>
           <Line data={lineDataUltra} options={options} />
         </div>
+        <h2 className="text-black">Latest TEV Sensor Data:</h2>
         <div style={{ height: "400px", marginTop: "20px" }}>
           <Line data={lineDataTEV} options={optionsTEV} />
         </div>
