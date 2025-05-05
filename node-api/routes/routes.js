@@ -30,7 +30,7 @@ router.get("/save-data", async (req, res) => {
 
   await fs.copyFile(
     "/home/seniordesign/Documents/UTP2 Results/output.txt",
-    `/home/seniordesign/sipder-app/node-api/output_files/${currentTime}.txt`
+    `/home/seniordesign/sipder-app/node-api/output_files/utp2Inspect-${currentTime}.txt`
   );
   res.status(200).send({ message: `Saved new data as filename: ${currentTime}.txt` });
 });

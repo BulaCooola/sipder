@@ -34,3 +34,5 @@ sipder-app-rn
 my-tev-app
 python-tev-app
 virtualTev.py
+
+*.txt
