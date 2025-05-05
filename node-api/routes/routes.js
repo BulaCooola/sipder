@@ -49,7 +49,7 @@ router.post("/read-data", async (req, res) => {
   console.log(lines);
 
   // console.log(file)
-  res.status(200).json({ lines });
+  res.status(200).json({ data: lines });
 });
 
 export default router;

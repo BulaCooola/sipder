@@ -2,9 +2,11 @@ import React from "react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import RecordingGraph from "../components/RecordingGraph";
 
 const RecordingsList = () => {
   const [files, setFiles] = useState([]);
+  const [fileContent, setFileContent] = useState(null);
   const [selectedFile, setSelectedFile]  = useState("");
   const [ultraData, setUltraData] = useState([]);
   const [tevData, setTevData] = useState([]);
@@ -23,6 +25,16 @@ const RecordingsList = () => {
     fetchFiles();
   }, []);
 
+  const handleRefreshData = async () => {
+    try {
+      const res = await axios.get("http://localhost:3000/data");
+      console.log(res)
+      setFiles(res.data.data);
+    } catch (err) {
+      console.error("Failed to fetch file list:", err);
+    }
+  }
+
   const handleSaveClick = async () => {
     try {
       const res = await axios.get("http://localhost:3000/save-data");
@@ -37,8 +49,9 @@ const RecordingsList = () => {
       const res = await axios.post("http://localhost:3000/read-data", {
         filename: filename.replace(".txt", ""),
       });
-      const lines = res.data.split("\n").filter((line) => line.trim() !== "");
-      setFileContent(lines);
+      // const lines = res.data.split("\n").filter((line) => line.trim() !== "");
+      setFileContent(res.data.data);
+      console.log(fileContent)
     } catch (err) {
       console.error("Failed to fetch file content:", err);
     }
@@ -46,11 +59,14 @@ const RecordingsList = () => {
 
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
-      <button className="btn" onClick={handleSaveClick}>
+    <div className="min-h-screen w-full flex flex-col items-center justify-center">
+      <button className="btn" onClick={ () => {
+        handleSaveClick()
+        handleRefreshData()
+      }}>
         Save Recorded Data
       </button>
-      <button className="btn">Refresh Data</button>
+      <button className="btn" onClick={handleRefreshData}>Refresh Data</button>
 
         <h1 className="text-2xl font-semibold mb-4">Output File Viewer</h1>
 
@@ -70,6 +86,8 @@ const RecordingsList = () => {
             ))}
           </ul>
         </div>
+
+        {fileContent && (<RecordingGraph rawdata={fileContent} />)}
     </div>
   );
 };
