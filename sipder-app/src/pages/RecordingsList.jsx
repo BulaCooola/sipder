@@ -1,9 +1,11 @@
 import React from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 
 const RecordingsList = () => {
-  const [bufferData, setBufferData] = useState([]);
+  const [files, setFiles] = useState([]);
+  const [selectedFile, setSelectedFile]  = useState("");
   const [ultraData, setUltraData] = useState([]);
   const [tevData, setTevData] = useState([]);
 
@@ -11,6 +13,7 @@ const RecordingsList = () => {
     const fetchFiles = async () => {
       try {
         const res = await axios.get("http://localhost:3000/data");
+        console.log(res)
         setFiles(res.data.data);
       } catch (err) {
         console.error("Failed to fetch file list:", err);
@@ -41,14 +44,15 @@ const RecordingsList = () => {
     }
   };
 
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center">
-      <button className="btn" onClick={handleSaveClick()}>
+      <button className="btn" onClick={handleSaveClick}>
         Save Recorded Data
       </button>
       <button className="btn">Refresh Data</button>
 
-                <h1 className="text-2xl font-semibold mb-4">Output File Viewer</h1>
+        <h1 className="text-2xl font-semibold mb-4">Output File Viewer</h1>
 
         {/* File List */}
         <div>
