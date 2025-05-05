@@ -4,9 +4,10 @@ import SensorData from "./components/SensorData";
 import Workflow from "./pages/Workflow";
 // import { io as Client } from "socket.io-client";
 import "./App.css";
-import HomePage from "./components/HomePage";
+import HomePage from "./pages/HomePage";
 import NavBar from "./components/NavBar";
 import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
+import RecordingsList from "./pages/RecordingsList";
 
 // const socket = Client("http://localhost:3000");
 
@@ -26,6 +27,7 @@ function App() {
         <Route path="/fake-sensor" element={<FakeSensorData />} />
         <Route path="/real-sensor" element={<SensorData />} />
         <Route path="/workflow" element={<Workflow />} />
+        <Route path='/all-recordings' element={<RecordingsList />} />
       </Routes>
     </div>
   );

@@ -13,20 +13,25 @@ const NavBar = () => {
               </NavLink>
             </li>
             <li>
-              <NavLink to="/real-sensor" className="hover:underline">
+              <NavLink to="/all-recordings" className="hover:underline">
+                All Recordings
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/real-sensor" className="text-red-600 opacity-50 line-through hover:underline">
                 Serial Port Stream
               </NavLink>
             </li>
             <li>
-              <NavLink to="/fake-sensor" className="hover:underline">
+              <NavLink to="/fake-sensor" className="text-red-600 opacity-50 line-through hover:underline">
                 Emulated Data Stream
               </NavLink>
             </li>
-            <li>
+            {/* <li>
               <NavLink to="/workflow" className="hover:underline">
                 Workflow
               </NavLink>
-            </li>
+            </li> */}
           </ul>
         </nav>
       </header>
